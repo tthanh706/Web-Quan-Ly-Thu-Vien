@@ -43,6 +43,12 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def send_error_json(self, message, code=400):
         self.send_json({"error": message, "status": "error"}, code=code)
 
