@@ -785,15 +785,27 @@ function renderBooksGrid(booksList) {
                 <button onclick="triggerAiSummarize(${book.id})" class="btn btn-sm btn-ai flex-1" title="Xem AI Tóm tắt">
                     <i class="fa-solid fa-sparkles"></i> AI Tóm tắt
                 </button>
-                ${book.available_qty > 0 ? `
-                    <button onclick="handleBorrowClick(${book.id})" class="btn btn-sm btn-primary" title="Mượn sách ngay">
-                        <i class="fa-solid fa-handshake"></i> Mượn sách
-                    </button>
-                ` : `
-                    <button onclick="reserveBook(${book.id})" class="btn btn-sm btn-warning" title="Đặt trước khi có sách">
-                        <i class="fa-solid fa-bookmark"></i> Đặt trước
-                    </button>
-                `}
+                ${isStaff ? (
+                    book.available_qty > 0 ? `
+                        <button onclick="handleBorrowClick(${book.id})" class="btn btn-sm btn-primary" title="Mượn sách ngay">
+                            <i class="fa-solid fa-handshake"></i> Mượn sách
+                        </button>
+                    ` : `
+                        <button onclick="reserveBook(${book.id})" class="btn btn-sm btn-warning" title="Đặt trước khi có sách">
+                            <i class="fa-solid fa-bookmark"></i> Đặt trước
+                        </button>
+                    `
+                ) : (
+                    book.available_qty > 0 ? `
+                        <span class="badge badge-success book-status-badge" title="Tình trạng: Còn sách">
+                            <i class="fa-solid fa-circle-check"></i> Còn sách
+                        </span>
+                    ` : `
+                        <span class="badge badge-danger book-status-badge" title="Tình trạng: Hết sách">
+                            <i class="fa-solid fa-circle-xmark"></i> Hết sách
+                        </span>
+                    `
+                )}
                 ${isStaff ? `
                     <button onclick="editBook(${book.id})" class="btn btn-sm btn-icon" title="Chỉnh sửa"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button onclick="deleteBook(${book.id})" class="btn btn-sm btn-icon" title="Xóa"><i class="fa-solid fa-trash text-danger"></i></button>
@@ -831,11 +843,23 @@ function renderBooksTable(booksList) {
             </td>
             <td>
                 <button onclick="triggerAiSummarize(${b.id})" class="btn btn-sm btn-ai" title="AI Tóm tắt"><i class="fa-solid fa-sparkles"></i> Tóm tắt</button>
-                ${b.available_qty > 0 ? `
-                    <button onclick="handleBorrowClick(${b.id})" class="btn btn-sm btn-primary" title="Mượn sách"><i class="fa-solid fa-handshake"></i> Mượn sách</button>
-                ` : `
-                    <button onclick="reserveBook(${b.id})" class="btn btn-sm btn-warning" title="Đặt trước"><i class="fa-solid fa-bookmark"></i> Đặt trước</button>
-                `}
+                ${isStaff ? (
+                    b.available_qty > 0 ? `
+                        <button onclick="handleBorrowClick(${b.id})" class="btn btn-sm btn-primary" title="Mượn sách"><i class="fa-solid fa-handshake"></i> Mượn sách</button>
+                    ` : `
+                        <button onclick="reserveBook(${b.id})" class="btn btn-sm btn-warning" title="Đặt trước"><i class="fa-solid fa-bookmark"></i> Đặt trước</button>
+                    `
+                ) : (
+                    b.available_qty > 0 ? `
+                        <span class="badge badge-success book-status-badge" title="Tình trạng: Còn sách">
+                            <i class="fa-solid fa-circle-check"></i> Còn sách
+                        </span>
+                    ` : `
+                        <span class="badge badge-danger book-status-badge" title="Tình trạng: Hết sách">
+                            <i class="fa-solid fa-circle-xmark"></i> Hết sách
+                        </span>
+                    `
+                )}
                 ${isStaff ? `
                     <button onclick="editBook(${b.id})" class="btn btn-sm btn-outline"><i class="fa-solid fa-pen"></i></button>
                     <button onclick="deleteBook(${b.id})" class="btn btn-sm btn-outline text-danger"><i class="fa-solid fa-trash"></i></button>
