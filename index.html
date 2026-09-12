@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Thư viện Tích hợp AI | Smart Library System</title>
+    <meta name="description" content="Hệ thống Quản lý Thư viện trường học và doanh nghiệp tích hợp Trí tuệ nhân tạo (AI) giúp tra cứu, tóm tắt và gợi ý sách thông minh.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark">
+
+    <!-- FULL SCREEN MANDATORY LOGIN GATE OVERLAY -->
+    <div id="loginOverlay" class="login-overlay active">
+        <div class="login-box glass-panel">
+            <div class="login-header text-center">
+                <div class="logo-icon center-icon">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <h2>SmartLibrary <span class="ai-badge">AI</span></h2>
+                <p>Hệ thống Quản lý Thư viện Thông minh</p>
+            </div>
+
+            <form id="overlayLoginForm">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-user"></i> Tên đăng nhập</label>
+                    <input type="text" id="overlayUsername" class="form-control" required placeholder="Tên đăng nhập...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-lock"></i> Mật khẩu</label>
+                    <input type="password" id="overlayPassword" class="form-control" required placeholder="Mật khẩu...">
+                </div>
+                <button type="submit" class="btn btn-ai full-width btn-lg">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATION CONTAINER -->
+    <div id="app" class="app-container hidden">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>SmartLibrary <span class="ai-badge">AI</span></h2>
+                    <p>Quản lý Thư viện 4.0</p>
+                </div>
+            </div>
+
+            <!-- Role Indicator Banner (Clickable Profile Card) -->
+            <div class="user-role-card clickable-profile" id="userProfileCard" title="Nhấn để xem & chỉnh sửa Hồ sơ cá nhân">
+                <div class="role-avatar" id="sidebarAvatar">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="role-details">
+                    <div id="sidebarUserRole" class="role-tag admin">Quản trị viên</div>
+                    <div id="sidebarUserName" class="user-name">Admin System</div>
+                </div>
+            </div>
+
+
+            <nav class="sidebar-nav">
+                <ul id="sidebarNavList">
+                    <!-- Staff / Admin only -->
+                    <li class="role-staff-only">
+                        <a href="#dashboard" class="nav-item active" data-tab="dashboard">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Tổng quan & Thống kê</span>
+                        </a>
+                    </li>
+                    <!-- All roles -->
+                    <li>
+                        <a href="#books" class="nav-item" data-tab="books">
+                            <i class="fa-solid fa-book"></i>
+                            <span id="bookNavLabel">Tra cứu & Quản lý Sách</span>
+                        </a>
+                    </li>
+
+                    <!-- Staff / Admin only -->
+                    <li class="role-staff-only">
+                        <a href="#readers" class="nav-item" data-tab="readers">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>Quản lý Độc giả</span>
+                        </a>
+                    </li>
+                    <!-- Staff / Admin only -->
+                    <li class="role-staff-only">
+                        <a href="#loans" class="nav-item" data-tab="loans">
+                            <i class="fa-solid fa-handshake"></i>
+                            <span>Quản lý Mượn / Trả / Phạt</span>
+                        </a>
+                    </li>
+                    <!-- Reader only loans view -->
+                    <li class="role-reader-only">
+                        <a href="#my-loans" class="nav-item" data-tab="my-loans">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span>Lịch sử Mượn của tôi</span>
+                        </a>
+                    </li>
+                    <!-- All roles -->
+                    <li>
+                        <a href="#reservations" class="nav-item" data-tab="reservations">
+                            <i class="fa-solid fa-bookmark"></i>
+                            <span>Đặt trước Sách</span>
+                        </a>
+                    </li>
+                    <!-- Admin only User Management -->
+                    <li class="role-admin-only">
+                        <a href="#users" class="nav-item" data-tab="users">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span>Quản lý Tài khoản & Phân quyền</span>
+                        </a>
+                    </li>
+                    <li class="nav-separator">TÍNH NĂNG AI</li>
+                    <li>
+                        <a href="#ai-assistant" class="nav-item ai-tab" data-tab="ai-assistant">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>Trợ lý AI & Gợi ý Sách</span>
+                        </a>
+                    </li>
+                    <!-- Staff / Admin only -->
+                    <li class="nav-separator role-staff-only">BÁO CÁO</li>
+                    <li class="role-staff-only">
+                        <a href="#reports" class="nav-item" data-tab="reports">
+                            <i class="fa-solid fa-file-export"></i>
+                            <span>Báo cáo & Xuất dữ liệu</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="themeToggleBtn" class="theme-toggle-btn" title="Đổi giao diện Sáng/Tối">
+                    <i class="fa-solid fa-moon"></i> <span>Giao diện Tối</span>
+                </button>
+                <button id="sidebarLogoutBtn" class="logout-btn" title="Đăng xuất khỏi hệ thống">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>Đăng xuất</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            
+            <!-- HEADER BAR -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobileMenuBtn" class="mobile-menu-btn"><i class="fa-solid fa-bars"></i></button>
+                    <div class="header-title">
+                        <h1 id="pageTitle">Tổng quan Thư viện</h1>
+                        <p id="pageSubtitle">Thống kê hoạt động & chỉ số thư viện thời gian thực</p>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="quick-search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="globalSearchInput" placeholder="Tìm nhanh sách, độc giả...">
+                    </div>
+                    
+                    <div class="header-actions">
+                        <button id="quickBorrowBtn" class="btn btn-primary btn-sm role-staff-only">
+                            <i class="fa-solid fa-plus"></i> Tạo Phiếu mượn
+                        </button>
+                        <button id="headerLogoutBtn" class="btn btn-outline btn-sm text-danger" title="Đăng xuất tài khoản">
+                            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- CONTAINER FOR DYNAMIC TAB VIEWS -->
+            <div class="content-body">
+                
+                <!-- TAB 1: DASHBOARD & STATS (Admin / Librarian) -->
+                <section id="tab-dashboard" class="tab-view">
+                    <!-- Metric Cards Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card blue">
+                            <div class="stat-icon"><i class="fa-solid fa-book-open"></i></div>
+                            <div class="stat-info">
+                                <h3>Tổng số đầu sách</h3>
+                                <div class="stat-value" id="statTotalBooks">0</div>
+                                <div class="stat-desc"><span id="statAvailableCopies">0</span> bản còn sẵn trong kho</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card green">
+                            <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3>Độc giả đăng ký</h3>
+                                <div class="stat-value" id="statTotalReaders">0</div>
+                                <div class="stat-desc"><span id="statActiveReaders">0</span> thẻ đang hoạt động</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card purple">
+                            <div class="stat-icon"><i class="fa-solid fa-handshake-simple"></i></div>
+                            <div class="stat-info">
+                                <h3>Phiếu mượn hoạt động</h3>
+                                <div class="stat-value" id="statActiveLoans">0</div>
+                                <div class="stat-desc">Đang lưu hành bên ngoài</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card red">
+                            <div class="stat-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+                            <div class="stat-info">
+                                <h3>Mượn quá hạn</h3>
+                                <div class="stat-value" id="statOverdueLoans">0</div>
+                                <div class="stat-desc">Tổng tiền phạt: <strong id="statTotalFines">0 VNĐ</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Tables Grid -->
+                    <div class="dashboard-grid">
+                        <div class="glass-panel chart-panel">
+                            <div class="panel-header">
+                                <h3><i class="fa-solid fa-chart-column"></i> Thống kê Sách mượn nhiều nhất</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="topBooksChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel chart-panel">
+                            <div class="panel-header">
+                                <h3><i class="fa-solid fa-chart-pie"></i> Cơ cấu Sách theo Thể loại</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel table-panel full-width">
+                            <div class="panel-header">
+                                <h3><i class="fa-solid fa-triangle-exclamation text-warning"></i> Sách Quá hạn Cần Xử lý Gấp</h3>
+                                <button class="btn btn-outline btn-sm" id="viewAllLoansBtn">Xem tất cả phiếu mượn</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="overdueTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã PM</th>
+                                            <th>Độc giả</th>
+                                            <th>Tên Sách</th>
+                                            <th>Ngày mượn</th>
+                                            <th>Hạn trả</th>
+                                            <th>Số ngày trễ</th>
+                                            <th>Tiền phạt</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="overdueTableBody">
+                                        <!-- Rendered via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: BOOKS MANAGEMENT & LOOKUP (All Roles) -->
+                <section id="tab-books" class="tab-view active">
+                    <div class="view-actions-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="bookSearchInput" placeholder="Tìm theo tên sách, tác giả, mã sách...">
+                            </div>
+
+                            <select id="bookCategoryFilter" class="form-select">
+                                <option value="all">Tất cả thể loại</option>
+                                <!-- Categories populated via JS -->
+                            </select>
+
+                            <select id="bookStatusFilter" class="form-select">
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="available">Còn sách trong kho</option>
+                                <option value="out_of_stock">Đã mượn hết</option>
+                            </select>
+                        </div>
+
+                        <div class="action-buttons">
+                            <div class="view-mode-toggle">
+                                <button id="viewGridBtn" class="btn btn-icon active" title="Xem dạng lưới"><i class="fa-solid fa-border-all"></i></button>
+                                <button id="viewTableBtn" class="btn btn-icon" title="Xem dạng bảng"><i class="fa-solid fa-list"></i></button>
+                            </div>
+                            <button id="addBookBtn" class="btn btn-primary role-librarian-only">
+                                <i class="fa-solid fa-plus"></i> Thêm Sách Mới
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Books Grid View -->
+                    <div id="booksGridContainer" class="books-grid">
+                        <!-- Book cards rendered via JS -->
+                    </div>
+
+                    <!-- Books Table View (Hidden by default) -->
+                    <div id="booksTableContainer" class="glass-panel table-panel hidden">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã sách</th>
+                                        <th>Bìa</th>
+                                        <th>Tên sách</th>
+                                        <th>Tác giả</th>
+                                        <th>Thể loại</th>
+                                        <th>Nhà xuất bản</th>
+                                        <th>Kệ</th>
+                                        <th>Tổng / Còn</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="booksTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: READERS MANAGEMENT (Staff Only) -->
+                <section id="tab-readers" class="tab-view">
+                    <div class="view-actions-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="readerSearchInput" placeholder="Tìm theo tên độc giả, mã thẻ, email, SĐT...">
+                            </div>
+
+                            <select id="readerStatusFilter" class="form-select">
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="Hoạt động">Đang hoạt động</option>
+                                <option value="Hết hạn">Đã hết hạn</option>
+                                <option value="Bị khóa">Đang bị khóa</option>
+                            </select>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button id="addReaderBtn" class="btn btn-primary role-librarian-only">
+                                <i class="fa-solid fa-id-card-clip"></i> Cấp Thẻ Độc Giả Mới
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel table-panel">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã thẻ</th>
+                                        <th>Họ và Tên</th>
+                                        <th>Liên hệ (Email / SĐT)</th>
+                                        <th>Loại độc giả</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày cấp</th>
+                                        <th>Ngày hết hạn</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="readersTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: LOANS & FINES MANAGEMENT (Staff Only) -->
+                <section id="tab-loans" class="tab-view">
+                    <div class="view-actions-bar">
+                        <div class="filter-group">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="loanSearchInput" placeholder="Tìm mã PM, độc giả, tên sách...">
+                            </div>
+
+                            <select id="loanStatusFilter" class="form-select">
+                                <option value="all">Tất cả phiếu mượn</option>
+                                <option value="Đang mượn">Đang mượn</option>
+                                <option value="Quá hạn">Đã quá hạn</option>
+                                <option value="Đã trả">Đã hoàn trả</option>
+                            </select>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button id="createLoanBtn" class="btn btn-primary role-librarian-only">
+                                <i class="fa-solid fa-file-circle-plus"></i> Tạo Phiếu Mượn Sách
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel table-panel">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã PM</th>
+                                        <th>Độc giả</th>
+                                        <th>Mã sách & Tên sách</th>
+                                        <th>Ngày mượn</th>
+                                        <th>Hạn trả</th>
+                                        <th>Ngày trả thực tế</th>
+                                        <th>Trạng thái</th>
+                                        <th>Gia hạn</th>
+                                        <th>Tiền phạt</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="loansTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4B: MY LOANS (Reader Only View) -->
+                <section id="tab-my-loans" class="tab-view">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3><i class="fa-solid fa-book-bookmark text-ai"></i> Sách Đang Mượn & Lịch Sử Mượn Của Tôi</h3>
+                                <p>Danh sách các cuốn sách bạn đang giữ và thời hạn cần trả lại cho thư viện</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã PM</th>
+                                        <th>Tên Sách Mượn</th>
+                                        <th>Ngày mượn</th>
+                                        <th>Hạn trả sách</th>
+                                        <th>Ngày trả thực tế</th>
+                                        <th>Trạng thái</th>
+                                        <th>Tiền phạt quá hạn</th>
+                                        <th>Yêu cầu Gia hạn</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="myLoansTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: BOOK RESERVATIONS QUEUE (All Roles) -->
+                <section id="tab-reservations" class="tab-view">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3><i class="fa-solid fa-list-ol"></i> Hàng chờ Đặt trước Sách (Reservation Queue)</h3>
+                                <p>Danh sách các độc giả đang chờ nhận sách khi các cuốn sách hết mượn được trả lại</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Hàng chờ #</th>
+                                        <th>Tên Sách</th>
+                                        <th>Mã Sách</th>
+                                        <th>Độc giả đặt</th>
+                                        <th>Mã thẻ</th>
+                                        <th>Thời gian đặt</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reservationsTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5B: USER ACCOUNT MANAGEMENT & ROLE ASSIGNMENT (Admin Only) -->
+                <section id="tab-users" class="tab-view">
+                    <div class="view-actions-bar">
+                        <div>
+                            <h3><i class="fa-solid fa-users-gear text-ai"></i> Quản lý Tài khoản & Phân quyền Hệ thống</h3>
+                            <p class="text-muted" style="font-size:0.88rem;">Danh sách tất cả tài khoản đăng nhập (Admin, Thủ thư, Độc giả)</p>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="addUserBtn" class="btn btn-primary">
+                                <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel table-panel">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tên đăng nhập</th>
+                                        <th>Họ và Tên</th>
+                                        <th>Email</th>
+                                        <th>Vai trò (Role)</th>
+                                        <th>Ngày tạo</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 6: AI ASSISTANT & RECOMMENDATIONS STUDIO -->
+                <section id="tab-ai-assistant" class="tab-view">
+                    <div class="ai-studio-grid">
+                        
+                        <!-- AI Chatbot Search Assistant -->
+                        <div class="glass-panel ai-chat-panel">
+                            <div class="panel-header">
+                                <div class="ai-title">
+                                    <i class="fa-solid fa-robot text-ai"></i>
+                                    <div>
+                                        <h3>Trợ lý Thư viện AI (Semantic Search)</h3>
+                                        <p>Hỏi đáp & Tìm kiếm sách thông minh bằng ngôn ngữ tự nhiên</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-messages" id="aiChatMessages">
+                                <div class="chat-message ai">
+                                    <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                                    <div class="bubble">
+                                        Xin chào! Tôi là Trợ lý Trí tuệ Nhân tạo của Thư viện. Bạn có thể hỏi tôi những câu hỏi như:
+                                        <ul>
+                                            <li><em>"Tìm cho tôi sách lập trình Python cho người mới bắt đầu?"</em></li>
+                                            <li><em>"Những cuốn sách nào về tư duy và kỹ năng sống hay nhất?"</em></li>
+                                            <li><em>"Tôi muốn tìm sách kinh tế của Philip Kotler"</em></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-input-area">
+                                <input type="text" id="aiChatInput" placeholder="Nhập câu hỏi hoặc nhu cầu tìm sách của bạn...">
+                                <button id="aiChatSendBtn" class="btn btn-ai"><i class="fa-solid fa-paper-plane"></i> Gửi AI</button>
+                            </div>
+                        </div>
+
+                        <!-- AI Book Recommendation Engine -->
+                        <div class="glass-panel ai-recommend-panel">
+                            <div class="panel-header">
+                                <div class="ai-title">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-ai"></i>
+                                    <div>
+                                        <h3>AI Gợi ý Sách Cá nhân hóa</h3>
+                                        <p>Phân tích sở thích & xu hướng mượn sách</p>
+                                    </div>
+                                </div>
+                                <button id="refreshAiRecBtn" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrows-rotate"></i> Cập nhật</button>
+                            </div>
+
+                            <div id="aiRecExplanation" class="ai-explanation-box">
+                                <i class="fa-solid fa-lightbulb text-warning"></i> Đang phân tích xu hướng...
+                            </div>
+
+                            <div class="recommendations-grid" id="aiRecommendationsGrid">
+                                <!-- AI Recommended Books rendered via JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- TAB 7: REPORTS & EXPORT (Staff Only) -->
+                <section id="tab-reports" class="tab-view">
+                    <div class="reports-grid">
+                        
+                        <div class="glass-panel report-card">
+                            <div class="report-icon"><i class="fa-solid fa-file-excel text-success"></i></div>
+                            <h3>Xuất Danh sách Sách (Excel / CSV)</h3>
+                            <p>Tải xuống toàn bộ kho sách bao gồm tên, tác giả, thể loại, số lượng tồn kho và vị trí kệ.</p>
+                            <button id="exportBooksBtn" class="btn btn-success"><i class="fa-solid fa-download"></i> Xuất Excel Sách</button>
+                        </div>
+
+                        <div class="glass-panel report-card">
+                            <div class="report-icon"><i class="fa-solid fa-file-csv text-info"></i></div>
+                            <h3>Xuất Danh sách Độc giả</h3>
+                            <p>Tải danh sách độc giả, loại thẻ, ngày hết hạn và trạng thái hoạt động dưới dạng file CSV.</p>
+                            <button id="exportReadersBtn" class="btn btn-info"><i class="fa-solid fa-download"></i> Xuất Danh sách Độc giả</button>
+                        </div>
+
+                        <div class="glass-panel report-card">
+                            <div class="report-icon"><i class="fa-solid fa-file-lines text-warning"></i></div>
+                            <h3>Xuất Nhật ký Mượn / Trả & Phạt</h3>
+                            <p>Xuất toàn bộ báo cáo lịch sử mượn trả, ngày quá hạn và tiền phạt đã thu.</p>
+                            <button id="exportLoansBtn" class="btn btn-warning"><i class="fa-solid fa-download"></i> Xuất Báo cáo Mượn Trả</button>
+                        </div>
+
+                        <div class="glass-panel report-card">
+                            <div class="report-icon"><i class="fa-solid fa-print text-primary"></i></div>
+                            <h3>In Báo cáo Thư viện Tổng hợp</h3>
+                            <p>Tạo trang báo cáo hoàn chỉnh có định dạng chuẩn in ấn để nộp ban giám hiệu / ban quản lý.</p>
+                            <button id="printFullReportBtn" class="btn btn-primary"><i class="fa-solid fa-print"></i> Xem & In Báo Báo</button>
+                        </div>
+
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: PERSONAL PROFILE (ALL USERS) -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content modal-md glass-panel">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-id-card text-ai"></i> Hồ Sơ Cá Nhân</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-header-card">
+                    <div class="profile-avatar-large" id="profileAvatarLarge">
+                        <i class="fa-solid fa-user-circle"></i>
+                    </div>
+                    <div class="profile-header-info">
+                        <h3 id="profileHeaderName">Họ và Tên</h3>
+                        <div id="profileHeaderRoleBadge" class="role-tag admin">ADMIN</div>
+                        <p id="profileHeaderMeta" class="text-muted" style="font-size:0.85rem;">@username</p>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <form id="profileForm">
+                    <input type="hidden" id="profileUserId">
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-user"></i> Họ và Tên *</label>
+                        <input type="text" id="profileFullName" class="form-control" required placeholder="Nhập họ và tên...">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-envelope"></i> Email</label>
+                            <input type="email" id="profileEmail" class="form-control" placeholder="email@domain.com">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-phone"></i> Số điện thoại</label>
+                            <input type="tel" id="profilePhone" class="form-control" placeholder="0901234567">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-key"></i> Đổi Mật khẩu Mới (Bỏ trống nếu không muốn đổi)</label>
+                        <input type="password" id="profilePassword" class="form-control" placeholder="Nhập mật khẩu mới nếu muốn thay đổi...">
+                    </div>
+
+                    <!-- Additional Details Panel -->
+                    <div class="glass-panel" style="background:rgba(255,255,255,0.03); padding:1rem; margin-top:1rem;">
+                        <h4 style="font-size:0.9rem; margin-bottom:0.6rem; color:var(--accent-indigo);"><i class="fa-solid fa-circle-info"></i> Thông tin Thẻ & Tài khoản</h4>
+                        <div class="form-row" style="font-size:0.85rem;">
+                            <div><strong>Tên đăng nhập:</strong> <span id="profileUsernameText">-</span></div>
+                            <div><strong>Vai trò:</strong> <span id="profileRoleText">-</span></div>
+                            <div><strong>Mã thẻ độc giả:</strong> <span id="profileReaderCodeText">N/A</span></div>
+                            <div><strong>Trạng thái thẻ:</strong> <span id="profileCardStatusText">N/A</span></div>
+                            <div><strong>Hạn dùng thẻ:</strong> <span id="profileExpiryText">N/A</span></div>
+                            <div><strong>Ngày tạo TK:</strong> <span id="profileCreatedAtText">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline modal-cancel">Đóng</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Cập Nhật Hồ Sơ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL: ADD / EDIT USER (ADMIN ONLY) -->
+    <div id="userModal" class="modal">
+        <div class="modal-content modal-md glass-panel">
+            <div class="modal-header">
+                <h2 id="userModalTitle"><i class="fa-solid fa-user-gear text-ai"></i> Thêm Tài Khoản Mới</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userFormId">
+                    
+                    <div class="form-group">
+                        <label>Tên đăng nhập (Username) *</label>
+                        <input type="text" id="userFormUsername" class="form-control" placeholder="thuthu2, docgia8..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mật khẩu * (Bỏ trống nếu không muốn đổi khi sửa)</label>
+                        <input type="password" id="userFormPassword" class="form-control" placeholder="Nhập mật khẩu...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Họ và Tên *</label>
+                        <input type="text" id="userFormFullName" class="form-control" placeholder="Nguyễn Văn A..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="userFormEmail" class="form-control" placeholder="user@library.edu.vn">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phân quyền Tài khoản (Role) *</label>
+                        <select id="userFormRole" class="form-select" required>
+                            <option value="reader">Độc giả (Reader)</option>
+                            <option value="librarian">Thủ thư (Librarian)</option>
+                            <option value="admin">Quản trị viên (Admin)</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline modal-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu Tài Khoản</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD / EDIT BOOK -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content modal-lg glass-panel">
+            <div class="modal-header">
+                <h2 id="bookModalTitle"><i class="fa-solid fa-book"></i> Thêm Sách Mới</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bookForm">
+                    <input type="hidden" id="bookFormId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Mã Sách *</label>
+                            <input type="text" id="bookFormCode" class="form-control" placeholder="Ví dụ: MS011" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Thể loại *</label>
+                            <select id="bookFormCategory" class="form-select" required>
+                                <!-- Categories populated via JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tên Sách *</label>
+                        <input type="text" id="bookFormTitle" class="form-control" placeholder="Nhập tên đầy đủ cuốn sách..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tác giả *</label>
+                            <input type="text" id="bookFormAuthor" class="form-control" placeholder="Tên tác giả..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nhà xuất bản *</label>
+                            <input type="text" id="bookFormPublisher" class="form-control" placeholder="NXB Trẻ, NXB Kim Đồng..." required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Năm xuất bản</label>
+                            <input type="number" id="bookFormYear" class="form-control" value="2024" min="1900" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label>Số lượng Tổng *</label>
+                            <input type="number" id="bookFormTotalQty" class="form-control" value="5" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Vị trí Kệ Sách</label>
+                            <input type="text" id="bookFormRack" class="form-control" placeholder="Kệ A1-05">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>URL Bìa sách (Hình ảnh)</label>
+                        <input type="url" id="bookFormCover" class="form-control" placeholder="https://images.unsplash.com/...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mô tả nội dung / Tóm tắt ban đầu</label>
+                        <textarea id="bookFormDesc" class="form-control" rows="3" placeholder="Giới thiệu sơ lược cuốn sách..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline modal-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu Sách</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ADD / EDIT READER -->
+    <div id="readerModal" class="modal">
+        <div class="modal-content modal-md glass-panel">
+            <div class="modal-header">
+                <h2 id="readerModalTitle"><i class="fa-solid fa-id-card"></i> Cấp Thẻ Độc Giả</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="readerForm">
+                    <input type="hidden" id="readerFormId">
+                    <div class="form-group">
+                        <label>Mã Độc Giả *</label>
+                        <input type="text" id="readerFormCode" class="form-control" placeholder="Ví dụ: DG008" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Họ và Tên *</label>
+                        <input type="text" id="readerFormName" class="form-control" placeholder="Nguyễn Văn A" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="readerFormEmail" class="form-control" placeholder="email@domain.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Số điện thoại *</label>
+                            <input type="tel" id="readerFormPhone" class="form-control" placeholder="0901234567" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Loại độc giả</label>
+                            <select id="readerFormCardType" class="form-select">
+                                <option value="Sinh viên">Sinh viên</option>
+                                <option value="Giảng viên">Giảng viên</option>
+                                <option value="Độc giả ngoài">Độc giả ngoài</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Trạng thái Thẻ</label>
+                            <select id="readerFormStatus" class="form-select">
+                                <option value="Hoạt động">Đang hoạt động</option>
+                                <option value="Hết hạn">Đã hết hạn</option>
+                                <option value="Bị khóa">Bị khóa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline modal-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu Độc Giả</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CREATE LOAN TICKET -->
+    <div id="loanModal" class="modal">
+        <div class="modal-content modal-md glass-panel">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-file-circle-plus"></i> Tạo Phiếu Mượn Sách Mới</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="loanForm">
+                    <div class="form-group">
+                        <label>Chọn Độc Giả Mượn *</label>
+                        <select id="loanFormReader" class="form-select" required>
+                            <!-- Readers populated via JS -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Chọn Sách Mượn *</label>
+                        <select id="loanFormBook" class="form-select" required>
+                            <!-- Available books populated via JS -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Thời hạn mượn (Số ngày)</label>
+                        <select id="loanFormDays" class="form-select">
+                            <option value="7">7 ngày</option>
+                            <option value="14" selected>14 ngày (Chuẩn)</option>
+                            <option value="21">21 ngày</option>
+                            <option value="30">30 ngày (Dành cho Giảng viên)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ghi chú phiếu mượn</label>
+                        <input type="text" id="loanFormNotes" class="form-control" placeholder="Mục đích mượn, tình trạng sách...">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline modal-cancel">Hủy</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Xác nhận Mượn Sách</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: AI BOOK SUMMARIZER POPUP -->
+    <div id="aiSummaryModal" class="modal">
+        <div class="modal-content modal-lg glass-panel">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-sparkles text-ai"></i> AI Tóm tắt Nội dung Sách Chuyên sâu</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="aiSummaryModalBody">
+                <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> AI đang phân tích và tạo tóm tắt...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: PRINTABLE BORROW TICKET / LIBRARY REPORT -->
+    <div id="printModal" class="modal">
+        <div class="modal-content modal-lg print-content">
+            <div class="modal-header no-print">
+                <h2>Xem trước & In Báo cáo / Phiếu Mượn</h2>
+                <div>
+                    <button onclick="window.print()" class="btn btn-primary"><i class="fa-solid fa-print"></i> In Ngay</button>
+                    <button class="modal-close btn btn-outline">Đóng</button>
+                </div>
+            </div>
+            <div class="modal-body print-area" id="printAreaContent">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION SYSTEM -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>
