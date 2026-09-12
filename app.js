@@ -797,13 +797,13 @@ function renderBooksGrid(booksList) {
                     `
                 ) : (
                     book.available_qty > 0 ? `
-                        <span class="badge badge-success book-status-badge" title="Tình trạng: Còn sách">
-                            <i class="fa-solid fa-circle-check"></i> Còn sách
+                        <span class="badge badge-success book-status-badge" title="Tình trạng: Sẵn sàng mượn">
+                            <i class="fa-solid fa-circle-check"></i> Sẵn sàng
                         </span>
                     ` : `
-                        <span class="badge badge-danger book-status-badge" title="Tình trạng: Hết sách">
-                            <i class="fa-solid fa-circle-xmark"></i> Hết sách
-                        </span>
+                        <button onclick="reserveBook(${book.id})" class="btn btn-sm btn-warning" title="Đặt trước khi có sách">
+                            <i class="fa-solid fa-bookmark"></i> Đặt trước
+                        </button>
                     `
                 )}
                 ${isStaff ? `
@@ -851,13 +851,11 @@ function renderBooksTable(booksList) {
                     `
                 ) : (
                     b.available_qty > 0 ? `
-                        <span class="badge badge-success book-status-badge" title="Tình trạng: Còn sách">
-                            <i class="fa-solid fa-circle-check"></i> Còn sách
+                        <span class="badge badge-success book-status-badge" title="Tình trạng: Sẵn sàng mượn">
+                            <i class="fa-solid fa-circle-check"></i> Sẵn sàng
                         </span>
                     ` : `
-                        <span class="badge badge-danger book-status-badge" title="Tình trạng: Hết sách">
-                            <i class="fa-solid fa-circle-xmark"></i> Hết sách
-                        </span>
+                        <button onclick="reserveBook(${b.id})" class="btn btn-sm btn-warning" title="Đặt trước"><i class="fa-solid fa-bookmark"></i> Đặt trước</button>
                     `
                 )}
                 ${isStaff ? `
