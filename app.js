@@ -117,31 +117,23 @@ async function handleLoginSubmit(e) {
         const res = await fetchAPI('/auth/login', 'POST', { username, password });
         state.currentUser = res.user;
         localStorage.setItem('lib_user', JSON.stringify(res.user));
-        showToast(`Xin chào ${res.user.full_name} (${res.user.role.toUpperCase()})!`, 'success');
+        showToast(`Xin chào ${res.user.full_name} (${(res.user.role || 'user').toUpperCase()})!`, 'success');
         checkAuthState();
     } catch (err) {
-        // Fallback for Demo / Static Mode (e.g. GitHub Pages or when Python backend is down)
-        const demoUsers = {
-            'admin': { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' },
-            'thuthu1': { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn' },
-            'docgia1': { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1 }
+        // Universal Fallback for Static Hosting / Offline Server
+        const role = username.toLowerCase().includes('admin') ? 'admin' : (username.toLowerCase().includes('thu') ? 'librarian' : 'reader');
+        const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
+        
+        state.currentUser = {
+            id: Math.floor(Math.random() * 1000) + 10,
+            username: username,
+            role: role,
+            full_name: `${username} (${roleTitle})`,
+            email: `${username}@library.edu.vn`
         };
-        const demoPasswords = {
-            'admin': 'admin123',
-            'thuthu1': '123456',
-            'docgia1': '123456'
-        };
-
-        if (demoUsers[username] && demoPasswords[username] === password) {
-            state.currentUser = demoUsers[username];
-            localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
-            showToast(`[Demo Mode] Xin chào ${state.currentUser.full_name} (${state.currentUser.role.toUpperCase()})!`, 'success');
-            checkAuthState();
-        } else if (demoUsers[username]) {
-            showToast('Mật khẩu không chính xác!', 'error');
-        } else {
-            showToast(`Không tìm thấy tài khoản '${username}'. Chọn Admin / Thủ thư / Độc giả bên dưới để thử nghiệm!`, 'warning');
-        }
+        localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
+        showToast(`[Demo Mode] Xin chào ${state.currentUser.full_name}!`, 'success');
+        checkAuthState();
     }
 }
 
@@ -149,25 +141,33 @@ async function handleLoginSubmit(e) {
 function getMockData(endpoint, method = 'GET', data = null) {
     // Auth Login
     if (endpoint === '/auth/login' && method === 'POST') {
-        const username = (data && data.username) ? data.username.trim() : '';
+        const username = (data && data.username) ? data.username.trim() : 'User';
         const password = (data && data.password) ? data.password.trim() : '';
+
         const demoUsers = {
             'admin': { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' },
             'thuthu1': { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn' },
             'docgia1': { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1 }
         };
-        const demoPasswords = {
-            'admin': 'admin123',
-            'thuthu1': '123456',
-            'docgia1': '123456'
-        };
-        if (demoUsers[username] && demoPasswords[username] === password) {
+
+        if (demoUsers[username]) {
             return { user: demoUsers[username], message: 'Đăng nhập thành công (Demo Mode)' };
-        } else if (demoUsers[username]) {
-            throw new Error('Mật khẩu không chính xác!');
-        } else {
-            throw new Error(`Tài khoản '${username}' không tồn tại. Vui lòng chọn tài khoản mẫu (admin, thuthu1, docgia1) để dùng thử!`);
         }
+
+        // Allow any custom username (e.g. hanh01) to log in in Demo Mode
+        const role = username.toLowerCase().includes('admin') ? 'admin' : (username.toLowerCase().includes('thu') ? 'librarian' : 'reader');
+        const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
+
+        return {
+            user: {
+                id: Math.floor(Math.random() * 1000) + 10,
+                username: username,
+                role: role,
+                full_name: `${username} (${roleTitle})`,
+                email: `${username}@library.edu.vn`
+            },
+            message: 'Đăng nhập thành công (Demo Mode)'
+        };
     }
 
     // Categories
@@ -337,13 +337,20 @@ function setupEventListeners() {
     document.getElementById('headerLogoutBtn').addEventListener('click', handleLogout);
     document.getElementById('sidebarLogoutBtn').addEventListener('click', handleLogout);
 
-    // Overlay Login Presets
+    // Overlay Login Presets (Instant 1-Click Login)
     document.querySelectorAll('#loginOverlay .preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const user = btn.getAttribute('data-user');
             const pass = btn.getAttribute('data-pass');
             document.getElementById('overlayUsername').value = user;
             document.getElementById('overlayPassword').value = pass;
+            
+            const form = document.getElementById('overlayLoginForm');
+            if (form && form.requestSubmit) {
+                form.requestSubmit();
+            } else if (form) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
         });
     });
 
