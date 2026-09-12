@@ -2,7 +2,9 @@
    SMART LIBRARY MANAGEMENT SYSTEM - MAIN APPLICATION JS
    ========================================================================== */
 
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:') && !window.location.hostname.includes('github.io') && window.location.port === '8000'
+    ? `${window.location.origin}/api`
+    : 'http://127.0.0.1:8000/api';
 
 // --- STATE MANAGEMENT ---
 const state = {
@@ -28,7 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     setupEventListeners();
-    await loadCategories();
+    try {
+        await loadCategories();
+    } catch (err) {
+        console.warn("Backend server not reached during initialization:", err.message);
+    }
     checkAuthState();
 }
 
@@ -108,7 +114,28 @@ async function handleLoginSubmit(e) {
         showToast(`Xin chào ${res.user.full_name} (${res.user.role.toUpperCase()})!`, 'success');
         checkAuthState();
     } catch (err) {
-        // error toast handled in fetchAPI
+        // Fallback for Demo / Static Mode (e.g. GitHub Pages or when Python backend is down)
+        const demoUsers = {
+            'admin': { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' },
+            'thuthu1': { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn' },
+            'docgia1': { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1 }
+        };
+        const demoPasswords = {
+            'admin': 'admin123',
+            'thuthu1': '123456',
+            'docgia1': '123456'
+        };
+
+        if (demoUsers[username] && demoPasswords[username] === password) {
+            state.currentUser = demoUsers[username];
+            localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
+            showToast(`[Demo Mode] Xin chào ${state.currentUser.full_name} (${state.currentUser.role.toUpperCase()})!`, 'success');
+            checkAuthState();
+        } else if (demoUsers[username]) {
+            showToast('Mật khẩu không chính xác!', 'error');
+        } else {
+            showToast(`Không tìm thấy tài khoản '${username}'. Chọn Admin / Thủ thư / Độc giả bên dưới để thử nghiệm!`, 'warning');
+        }
     }
 }
 
@@ -133,7 +160,11 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
         }
         return result;
     } catch (err) {
-        showToast(err.message, 'error');
+        let msg = err.message;
+        if (err.name === 'TypeError' || msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+            msg = 'Không thể kết nối Server Python (http://127.0.0.1:8000). Đang dùng chế độ Demo tĩnh!';
+        }
+        showToast(msg, 'warning');
         throw err;
     }
 }
