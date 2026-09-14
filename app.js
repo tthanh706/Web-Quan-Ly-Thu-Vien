@@ -771,7 +771,19 @@ function renderBooksGrid(booksList) {
 
     container.innerHTML = booksList.map(book => `
         <div class="book-card">
-            <img src="${book.cover_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'}" alt="${book.title}" class="book-cover" onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'">
+            <div class="book-cover-container">
+                <img src="${book.cover_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'}" alt="${book.title}" class="book-cover" onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'">
+                ${isStaff ? `
+                    <div class="book-card-top-actions">
+                        <button onclick="editBook(${book.id})" class="btn-card-top edit" title="Chỉnh sửa thông tin sách">
+                            <i class="fa-solid fa-pen-to-square"></i> Sửa
+                        </button>
+                        <button onclick="deleteBook(${book.id})" class="btn-card-top delete" title="Xóa sách khỏi thư viện">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
             <div class="book-card-body">
                 <div class="book-category">${book.category_name} • ${book.book_code}</div>
                 <h4 class="book-title">${book.title}</h4>
@@ -787,11 +799,11 @@ function renderBooksGrid(booksList) {
                 </button>
                 ${isStaff ? (
                     book.available_qty > 0 ? `
-                        <button onclick="handleBorrowClick(${book.id})" class="btn btn-sm btn-primary" title="Mượn sách ngay">
+                        <button onclick="handleBorrowClick(${book.id})" class="btn btn-sm btn-primary flex-1" title="Mượn sách ngay">
                             <i class="fa-solid fa-handshake"></i> Mượn sách
                         </button>
                     ` : `
-                        <button onclick="reserveBook(${book.id})" class="btn btn-sm btn-warning" title="Đặt trước khi có sách">
+                        <button onclick="reserveBook(${book.id})" class="btn btn-sm btn-warning flex-1" title="Đặt trước khi có sách">
                             <i class="fa-solid fa-bookmark"></i> Đặt trước
                         </button>
                     `
@@ -807,8 +819,8 @@ function renderBooksGrid(booksList) {
                     `
                 )}
                 ${isStaff ? `
-                    <button onclick="editBook(${book.id})" class="btn btn-sm btn-icon" title="Chỉnh sửa"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button onclick="deleteBook(${book.id})" class="btn btn-sm btn-icon" title="Xóa"><i class="fa-solid fa-trash text-danger"></i></button>
+                    <button onclick="editBook(${book.id})" class="btn btn-sm btn-icon" title="Chỉnh sửa thông tin sách"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button onclick="deleteBook(${book.id})" class="btn btn-sm btn-icon text-danger" title="Xóa sách"><i class="fa-solid fa-trash"></i></button>
                 ` : ''}
             </div>
         </div>
@@ -859,8 +871,8 @@ function renderBooksTable(booksList) {
                     `
                 )}
                 ${isStaff ? `
-                    <button onclick="editBook(${b.id})" class="btn btn-sm btn-outline"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteBook(${b.id})" class="btn btn-sm btn-outline text-danger"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="editBook(${b.id})" class="btn btn-sm btn-primary" title="Chỉnh sửa thông tin sách"><i class="fa-solid fa-pen-to-square"></i> Sửa</button>
+                    <button onclick="deleteBook(${b.id})" class="btn btn-sm btn-outline text-danger" title="Xóa sách"><i class="fa-solid fa-trash"></i></button>
                 ` : ''}
             </td>
         </tr>
