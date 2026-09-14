@@ -213,7 +213,27 @@ def init_db():
 
         ('MS010', 'Tư Duy Nhanh Và Chậm', 'Daniel Kahneman', 6, 'NXB Thế Giới', 2022, 4, 1, 'Kệ F1-02', 
          'Cuốn sách tâm lý học kinh điển phân tích hai hệ thống tư duy chi phối mọi quyết định của con người: Hệ thống 1 (nhanh, cảm tính) và Hệ thống 2 (chậm, lý tính).', 
-         'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&q=80')
+         'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&q=80'),
+
+        ('MS011', 'Clean Code - Mã Sạch và Nghệ Thuật Lập Trình', 'Robert C. Martin (Uncle Bob)', 1, 'NXB Lao Động', 2023, 6, 5, 'Kệ A1-03',
+         'Cuốn sách gối đầu giường về nguyên lý lập trình sạch, refactoring và viết mã dễ bảo trì cho các lập trình viên chuyên nghiệp.',
+         'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&q=80'),
+
+        ('MS012', 'Hệ Thống Thiết Kế Design Systems', 'Alla Kholmatova', 1, 'NXB Bách Khoa', 2024, 6, 4, 'Kệ A1-08',
+         'Hướng dẫn xây dựng hệ thống thiết kế giao diện UI/UX đồng bộ, linh hoạt và chuẩn hóa cho sản phẩm số.',
+         'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400&q=80'),
+
+        ('MS013', 'Tuần Làm Việc 4 Giờ', 'Timothy Ferriss', 6, 'NXB Thế Giới', 2022, 8, 6, 'Kệ B2-08',
+         'Bí quyết thoát khỏi nhịp sống văn phòng rập khuôn, tối ưu hóa hiệu suất công việc và tự do tài chính.',
+         'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&q=80'),
+
+        ('MS014', 'Rừng Na-uy', 'Haruki Murakami', 2, 'NXB Hội Nhà Văn', 2022, 7, 5, 'Kệ C1-08',
+         'Tiểu thuyết lừng danh về tuổi trẻ, tình yêu, sự cô đơn và những trăn trở của thanh xuân thế hệ 1960.',
+         'https://images.unsplash.com/photo-1474939557548-f842486be195?w=400&q=80'),
+
+        ('MS015', 'Khéo Ăn Khéo Nói Sẽ Có Được Cả Thiên Hạ', 'Trác Nhã', 6, 'NXB Văn Học', 2023, 10, 8, 'Kệ B2-12',
+         'Nghệ thuật ứng xử, đàm phán và giao tiếp tinh tế trong công việc, cuộc sống giúp bạn thành công hơn.',
+         'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80')
     ]
     cursor.executemany('''
     INSERT INTO books (book_code, title, author, category_id, publisher, publish_year, total_qty, available_qty, rack_location, description, cover_url)
