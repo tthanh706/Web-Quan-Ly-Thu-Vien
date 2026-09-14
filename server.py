@@ -857,27 +857,40 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
             # Update Book
             if re.match(r'^/api/books/(\d+)$', path):
                 book_id = int(re.match(r'^/api/books/(\d+)$', path).group(1))
-                cursor.execute("SELECT id FROM books WHERE id = ?", (book_id,))
-                if not cursor.fetchone():
+                cursor.execute("SELECT * FROM books WHERE id = ?", (book_id,))
+                existing_book = cursor.fetchone()
+                if not existing_book:
                     return self.send_error_json("Sách không tồn tại", 404)
 
-                title = body.get('title', '').strip()
-                author = body.get('author', '').strip()
-                category_id = body.get('category_id')
-                publisher = body.get('publisher', '').strip()
-                publish_year = int(body.get('publish_year', 2024))
-                total_qty = int(body.get('total_qty', 1))
-                available_qty = int(body.get('available_qty', 1))
-                rack_location = body.get('rack_location', '').strip()
-                description = body.get('description', '').strip()
-                cover_url = body.get('cover_url', '').strip()
+                book_code = body.get('book_code', existing_book['book_code']).strip().upper()
+                title = body.get('title', existing_book['title']).strip()
+                author = body.get('author', existing_book['author']).strip()
+                category_id = body.get('category_id', existing_book['category_id'])
+                publisher = body.get('publisher', existing_book['publisher']).strip()
+                publish_year = int(body.get('publish_year', existing_book['publish_year']))
+                total_qty = int(body.get('total_qty', existing_book['total_qty']))
+                rack_location = body.get('rack_location', existing_book['rack_location']).strip()
+                description = body.get('description', existing_book['description']).strip()
+                cover_url = body.get('cover_url', existing_book['cover_url']).strip()
+
+                # Check for duplicate book_code if code is updated
+                if book_code != existing_book['book_code']:
+                    cursor.execute("SELECT id FROM books WHERE book_code = ? AND id != ?", (book_code, book_id))
+                    if cursor.fetchone():
+                        return self.send_error_json(f"Mã sách '{book_code}' đã tồn tại trong hệ thống")
+
+                # Recalculate available_qty based on total_qty delta
+                old_total = existing_book['total_qty']
+                old_avail = existing_book['available_qty']
+                qty_diff = total_qty - old_total
+                available_qty = max(0, old_avail + qty_diff)
 
                 cursor.execute('''
                     UPDATE books
-                    SET title = ?, author = ?, category_id = ?, publisher = ?, publish_year = ?,
+                    SET book_code = ?, title = ?, author = ?, category_id = ?, publisher = ?, publish_year = ?,
                         total_qty = ?, available_qty = ?, rack_location = ?, description = ?, cover_url = ?
                     WHERE id = ?
-                ''', (title, author, category_id, publisher, publish_year, total_qty, available_qty, rack_location, description, cover_url, book_id))
+                ''', (book_code, title, author, category_id, publisher, publish_year, total_qty, available_qty, rack_location, description, cover_url, book_id))
 
                 conn.commit()
                 return self.send_json({"message": "Cập nhật thông tin sách thành công!"})

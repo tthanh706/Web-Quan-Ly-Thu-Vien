@@ -914,13 +914,30 @@ function openBookModal(book = null) {
     document.getElementById('bookFormCover').value = book ? book.cover_url : '';
     document.getElementById('bookFormDesc').value = book ? book.description : '';
 
-    document.getElementById('bookModalTitle').innerHTML = book ? '<i class="fa-solid fa-pen"></i> Chỉnh sửa Sách' : '<i class="fa-solid fa-book"></i> Thêm Sách Mới';
+    const submitBtn = document.querySelector('#bookForm button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = book ? '<i class="fa-solid fa-floppy-disk"></i> Cập nhật Sách' : '<i class="fa-solid fa-floppy-disk"></i> Lưu Sách Mới';
+    }
+
+    document.getElementById('bookModalTitle').innerHTML = book ? '<i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa Thông tin Sách' : '<i class="fa-solid fa-book"></i> Thêm Sách Mới';
     openModal('bookModal');
 }
 
 async function handleBookSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('bookFormId').value;
+    const totalQty = parseInt(document.getElementById('bookFormTotalQty').value);
+    
+    // Find existing book if editing
+    const existingBook = id ? state.books.find(b => b.id == id) : null;
+    
+    // Calculate available_qty preserving active loans
+    let availableQty = totalQty;
+    if (existingBook) {
+        const qtyDiff = totalQty - (existingBook.total_qty || totalQty);
+        availableQty = Math.max(0, (existingBook.available_qty || 0) + qtyDiff);
+    }
+
     const data = {
         book_code: document.getElementById('bookFormCode').value.trim(),
         title: document.getElementById('bookFormTitle').value.trim(),
@@ -928,8 +945,8 @@ async function handleBookSubmit(e) {
         category_id: parseInt(document.getElementById('bookFormCategory').value),
         publisher: document.getElementById('bookFormPublisher').value.trim(),
         publish_year: parseInt(document.getElementById('bookFormYear').value),
-        total_qty: parseInt(document.getElementById('bookFormTotalQty').value),
-        available_qty: parseInt(document.getElementById('bookFormTotalQty').value),
+        total_qty: totalQty,
+        available_qty: availableQty,
         rack_location: document.getElementById('bookFormRack').value.trim(),
         cover_url: document.getElementById('bookFormCover').value.trim(),
         description: document.getElementById('bookFormDesc').value.trim()
@@ -937,28 +954,55 @@ async function handleBookSubmit(e) {
 
     try {
         if (id) {
-            await fetchAPI(`/books/${id}`, 'PUT', data);
-            showToast('Cập nhật sách thành công!', 'success');
+            const res = await fetchAPI(`/books/${id}`, 'PUT', data);
+            
+            // Update state.books in memory for immediate UI update & Demo Mode
+            const idx = state.books.findIndex(b => b.id == id);
+            if (idx !== -1) {
+                const categoryObj = state.categories.find(c => c.id == data.category_id);
+                state.books[idx] = {
+                    ...state.books[idx],
+                    ...data,
+                    category_name: categoryObj ? categoryObj.name : state.books[idx].category_name
+                };
+            }
+            showToast(res.message || 'Cập nhật thông tin sách thành công!', 'success');
         } else {
-            await fetchAPI('/books', 'POST', data);
-            showToast('Thêm sách mới thành công!', 'success');
+            const res = await fetchAPI('/books', 'POST', data);
+            const categoryObj = state.categories.find(c => c.id == data.category_id);
+            const newBook = {
+                id: res.id || Date.now(),
+                ...data,
+                category_name: categoryObj ? categoryObj.name : 'Chưa phân loại'
+            };
+            state.books.unshift(newBook);
+            showToast(res.message || 'Thêm sách mới thành công!', 'success');
         }
         closeModal('bookModal');
-        await loadBooks();
-    } catch (err) {}
+        filterBooks();
+    } catch (err) {
+        console.error("Lỗi khi lưu thông tin sách:", err);
+    }
 }
 
 function editBook(id) {
-    const book = state.books.find(b => b.id === id);
-    if (book) openBookModal(book);
+    const book = state.books.find(b => b.id == id);
+    if (book) {
+        openBookModal(book);
+    } else {
+        showToast('Không tìm thấy dữ liệu cuốn sách!', 'error');
+    }
 }
 
 async function deleteBook(id) {
-    if (!confirm("Bạn có chắc chắn muốn xóa cuốn sách này khỏi thư viện không?")) return;
+    const book = state.books.find(b => b.id == id);
+    const bookTitle = book ? book.title : 'cuốn sách này';
+    if (!confirm(`Bạn có chắc chắn muốn xóa "${bookTitle}" khỏi thư viện không?`)) return;
     try {
         const res = await fetchAPI(`/books/${id}`, 'DELETE');
-        showToast(res.message, 'success');
-        await loadBooks();
+        state.books = state.books.filter(b => b.id != id);
+        showToast(res.message || 'Đã xóa sách khỏi hệ thống', 'success');
+        filterBooks();
     } catch (err) {}
 }
 
