@@ -137,9 +137,8 @@ async function handleLoginSubmit(e) {
     }
 }
 
-// --- MOCK DATA STORE FOR STATIC HOSTING / DEMO MODE ---
-const mockStore = {
-    books: JSON.parse(localStorage.getItem('lib_mock_books')) || [
+function getInitialBooks() {
+    const defaultBooks = [
         { id: 1, book_code: 'MS001', title: 'Nhập Môn Lập Trình Python', author: 'Guido van Rossum', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Bách Khoa', publish_year: 2023, total_qty: 5, available_qty: 3, rack_location: 'Kệ A1-01', description: 'Cuốn sách căn bản dành cho người mới bắt đầu học lập trình Python. Hướng dẫn chi tiết cú pháp, cấu trúc dữ liệu, hàm và lập trình hướng đối tượng với nhiều ví dụ thực tế.', cover_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80' },
         { id: 2, book_code: 'MS002', title: 'Trí Tuệ Nhân Tạo & Deep Learning', author: 'Andrew Ng', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Tri Thức', publish_year: 2024, total_qty: 4, available_qty: 2, rack_location: 'Kệ A1-02', description: 'Kiến thức chuyên sâu về Mạng nơ-ron nhân tạo (Neural Networks), Học sâu (Deep Learning) và AI tạo sinh.', cover_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80' },
         { id: 3, book_code: 'MS003', title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', category_id: 6, category_name: 'Kỹ năng sống & Phát triển', publisher: 'NXB Trẻ', publish_year: 2022, total_qty: 10, available_qty: 7, rack_location: 'Kệ F2-05', description: 'Nghệ thuật thu phục lòng người và giao tiếp ứng xử thành công.', cover_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80' },
@@ -155,7 +154,26 @@ const mockStore = {
         { id: 13, book_code: 'MS013', title: 'Dế Mèn Phiêu Lưu Ký', author: 'Tô Hoài', category_id: 2, category_name: 'Văn học & Nghệ thuật', publisher: 'NXB Kim Đồng', publish_year: 2021, total_qty: 6, available_qty: 4, rack_location: 'Kệ B3-12', description: 'Tác phẩm văn học thiếu nhi kinh điển của nhà văn Tô Hoài, kể về cuộc phiêu lưu tự do và bài học nhân văn.', cover_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80' },
         { id: 14, book_code: 'MS014', title: 'Rừng Na-uy', author: 'Haruki Murakami', category_id: 2, category_name: 'Văn học & Nghệ thuật', publisher: 'NXB Hội Nhà Văn', publish_year: 2022, total_qty: 7, available_qty: 5, rack_location: 'Kệ C1-08', description: 'Tiểu thuyết lừng danh về tuổi trẻ, tình yêu, sự cô đơn và những trăn trở của thanh xuân thế hệ 1960.', cover_url: 'https://images.unsplash.com/photo-1474939557548-f842486be195?w=400&q=80' },
         { id: 15, book_code: 'MS015', title: 'Khéo Ăn Khéo Nói Sẽ Có Được Cả Thiên Hạ', author: 'Trác Nhã', category_id: 6, category_name: 'Kỹ năng sống & Phát triển', publisher: 'NXB Văn Học', publish_year: 2023, total_qty: 10, available_qty: 8, rack_location: 'Kệ B2-12', description: 'Nghệ thuật ứng xử, đàm phán và giao tiếp tinh tế trong công việc, cuộc sống giúp bạn thành công hơn.', cover_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80' }
-    ],
+    ];
+
+    const savedStr = localStorage.getItem('lib_mock_books');
+    if (!savedStr) return defaultBooks;
+    try {
+        const saved = JSON.parse(savedStr);
+        defaultBooks.forEach(defB => {
+            if (!saved.some(b => b.book_code === defB.book_code)) {
+                saved.push(defB);
+            }
+        });
+        return saved;
+    } catch (e) {
+        return defaultBooks;
+    }
+}
+
+// --- MOCK DATA STORE FOR STATIC HOSTING / DEMO MODE ---
+const mockStore = {
+    books: getInitialBooks(),
     readers: JSON.parse(localStorage.getItem('lib_mock_readers')) || [
         { id: 1, reader_code: 'DG001', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901234567', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
         { id: 2, reader_code: 'DG002', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912345678', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
