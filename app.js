@@ -137,12 +137,44 @@ async function handleLoginSubmit(e) {
     }
 }
 
-// --- MOCK DATA FOR STATIC HOSTING / DEMO MODE ---
+// --- MOCK DATA STORE FOR STATIC HOSTING / DEMO MODE ---
+const mockStore = {
+    books: JSON.parse(localStorage.getItem('lib_mock_books')) || [
+        { id: 1, book_code: 'MS001', title: 'Nhập Môn Lập Trình Python', author: 'Guido van Rossum', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Bách Khoa', publish_year: 2023, total_qty: 5, available_qty: 3, rack_location: 'Kệ A1-01', description: 'Cuốn sách căn bản dành cho người mới bắt đầu học lập trình Python.', cover_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80' },
+        { id: 2, book_code: 'MS002', title: 'Trí Tuệ Nhân Tạo & Deep Learning', author: 'Andrew Ng', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Giáo Dục', publish_year: 2024, total_qty: 4, available_qty: 2, rack_location: 'Kệ A1-02', description: 'Kiến thức chuyên sâu về mạng Nơ-ron nhân tạo và học sâu.', cover_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80' },
+        { id: 3, book_code: 'MS003', title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', category_id: 6, category_name: 'Kỹ năng sống & Phát triển', publisher: 'NXB Trẻ', publish_year: 2022, total_qty: 10, available_qty: 7, rack_location: 'Kệ B2-05', description: 'Nghệ thuật thu phục lòng người và giao tiếp ứng xử thành công.', cover_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80' },
+        { id: 4, book_code: 'MS004', title: 'Nhà Giả Kim', author: 'Paulo Coelho', category_id: 2, category_name: 'Văn học & Nghệ thuật', publisher: 'NXB Hội Nhà Văn', publish_year: 2021, total_qty: 8, available_qty: 4, rack_location: 'Kệ C1-03', description: 'Hành trình theo đuổi vận mệnh và giấc mơ của chú bé chăn cừu Santiago.', cover_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80' },
+        { id: 5, book_code: 'MS005', title: 'Kinh Tế Học Vĩ Mô', author: 'N. Gregory Mankiw', category_id: 3, category_name: 'Kinh tế & Quản trị', publisher: 'NXB Thống Kê', publish_year: 2023, total_qty: 6, available_qty: 5, rack_location: 'Kệ D3-01', description: 'Giáo trình chuẩn quốc tế về các nguyên lý kinh tế học vĩ mô.', cover_url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&q=80' }
+    ],
+    readers: JSON.parse(localStorage.getItem('lib_mock_readers')) || [
+        { id: 1, reader_code: 'DG001', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901234567', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
+        { id: 2, reader_code: 'DG002', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912345678', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
+        { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' }
+    ],
+    loans: JSON.parse(localStorage.getItem('lib_mock_loans')) || [
+        { id: 1, borrow_code: 'PM001', reader_id: 1, reader_name: 'Nguyễn Văn An', reader_code: 'DG001', book_id: 1, book_title: 'Nhập Môn Lập Trình Python', book_code: 'MS001', borrow_date: '2026-03-01', due_date: '2026-03-15', return_date: null, status: 'Đang mượn', fine_amount: 0, fine_status: 'N/A' },
+        { id: 2, borrow_code: 'PM002', reader_id: 2, reader_name: 'Trần Thị Bình', reader_code: 'DG002', book_id: 2, book_title: 'Trí Tuệ Nhân Tạo & Deep Learning', book_code: 'MS002', borrow_date: '2026-02-10', due_date: '2026-02-24', return_date: null, status: 'Quá hạn', fine_amount: 85000, fine_status: 'Chưa nộp' }
+    ],
+    users: JSON.parse(localStorage.getItem('lib_mock_users')) || [
+        { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn', created_at: '2025-01-01' },
+        { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn', created_at: '2025-01-05' },
+        { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', created_at: '2025-09-01' }
+    ]
+};
+
+function saveMockStore() {
+    try {
+        localStorage.setItem('lib_mock_books', JSON.stringify(mockStore.books));
+        localStorage.setItem('lib_mock_readers', JSON.stringify(mockStore.readers));
+        localStorage.setItem('lib_mock_loans', JSON.stringify(mockStore.loans));
+        localStorage.setItem('lib_mock_users', JSON.stringify(mockStore.users));
+    } catch (e) {}
+}
+
 function getMockData(endpoint, method = 'GET', data = null) {
     // Auth Login
     if (endpoint === '/auth/login' && method === 'POST') {
         const username = (data && data.username) ? data.username.trim() : 'User';
-        const password = (data && data.password) ? data.password.trim() : '';
 
         const demoUsers = {
             'admin': { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' },
@@ -154,7 +186,11 @@ function getMockData(endpoint, method = 'GET', data = null) {
             return { user: demoUsers[username], message: 'Đăng nhập thành công (Demo Mode)' };
         }
 
-        // Allow any custom username (e.g. hanh01) to log in in Demo Mode
+        const foundUser = mockStore.users.find(u => u.username === username);
+        if (foundUser) {
+            return { user: foundUser, message: 'Đăng nhập thành công (Demo Mode)' };
+        }
+
         const role = username.toLowerCase().includes('admin') ? 'admin' : (username.toLowerCase().includes('thu') ? 'librarian' : 'reader');
         const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
 
@@ -184,77 +220,192 @@ function getMockData(endpoint, method = 'GET', data = null) {
 
     // Dashboard Stats
     if (endpoint.startsWith('/stats/dashboard')) {
+        const availCopies = mockStore.books.reduce((acc, b) => acc + (b.available_qty || 0), 0);
         return {
-            book_stats: { total_books: 150, available_copies: 112 },
-            reader_stats: { total_readers: 48, active_readers: 42 },
-            loan_stats: { active_loans: 38, overdue_loans: 4, total_fines: 120000 },
-            top_books: [
-                { id: 1, title: 'Nhập Môn Lập Trình Python', borrow_count: 28 },
-                { id: 2, title: 'Trí Tuệ Nhân Tạo & Deep Learning', borrow_count: 24 },
-                { id: 3, title: 'Đắc Nhân Tâm', borrow_count: 19 },
-                { id: 4, title: 'Nhà Giả Kim', borrow_count: 15 },
-                { id: 5, title: 'Kinh Tế Học Vĩ Mô', borrow_count: 12 }
-            ],
+            book_stats: { total_books: mockStore.books.length * 10, available_copies: availCopies },
+            reader_stats: { total_readers: mockStore.readers.length, active_readers: mockStore.readers.filter(r => r.status === 'Hoạt động').length },
+            loan_stats: { active_loans: mockStore.loans.filter(l => l.status === 'Đang mượn').length, overdue_loans: mockStore.loans.filter(l => l.status === 'Quá hạn').length, total_fines: 120000 },
+            top_books: mockStore.books.map(b => ({ id: b.id, title: b.title, borrow_count: 15 })),
             category_stats: [
-                { category_name: 'Công nghệ Thông tin & AI', book_count: 45 },
-                { category_name: 'Văn học & Nghệ thuật', book_count: 35 },
-                { category_name: 'Kinh tế & Quản trị', book_count: 30 },
-                { category_name: 'Khoa học & Kỹ thuật', book_count: 20 },
-                { category_name: 'Kỹ năng sống', book_count: 20 }
+                { category_name: 'Công nghệ Thông tin & AI', total_copies: 45 },
+                { category_name: 'Văn học & Nghệ thuật', total_copies: 35 },
+                { category_name: 'Kinh tế & Quản trị', total_copies: 30 }
             ]
         };
     }
 
-    // Books
+    // --- BOOKS ---
     if (endpoint.startsWith('/books')) {
-        return [
-            { id: 1, book_code: 'MS001', title: 'Nhập Môn Lập Trình Python', author: 'Guido van Rossum', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Bách Khoa', publish_year: 2023, total_qty: 5, available_qty: 3, rack_location: 'Kệ A1-01', description: 'Cuốn sách căn bản dành cho người mới bắt đầu học lập trình Python.', cover_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80' },
-            { id: 2, book_code: 'MS002', title: 'Trí Tuệ Nhân Tạo & Deep Learning', author: 'Andrew Ng', category_id: 1, category_name: 'Công nghệ Thông tin & AI', publisher: 'NXB Giáo Dục', publish_year: 2024, total_qty: 4, available_qty: 2, rack_location: 'Kệ A1-02', description: 'Kiến thức chuyên sâu về mạng Nơ-ron nhân tạo và học sâu.', cover_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80' },
-            { id: 3, book_code: 'MS003', title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', category_id: 6, category_name: 'Kỹ năng sống & Phát triển', publisher: 'NXB Trẻ', publish_year: 2022, total_qty: 10, available_qty: 7, rack_location: 'Kệ B2-05', description: 'Nghệ thuật thu phục lòng người và giao tiếp ứng xử thành công.', cover_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80' },
-            { id: 4, book_code: 'MS004', title: 'Nhà Giả Kim', author: 'Paulo Coelho', category_id: 2, category_name: 'Văn học & Nghệ thuật', publisher: 'NXB Hội Nhà Văn', publish_year: 2021, total_qty: 8, available_qty: 4, rack_location: 'Kệ C1-03', description: 'Hành trình theo đuổi vận mệnh và giấc mơ của chú bé chăn cừu Santiago.', cover_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80' },
-            { id: 5, book_code: 'MS005', title: 'Kinh Tế Học Vĩ Mô', author: 'N. Gregory Mankiw', category_id: 3, category_name: 'Kinh tế & Quản trị', publisher: 'NXB Thống Kê', publish_year: 2023, total_qty: 6, available_qty: 5, rack_location: 'Kệ D3-01', description: 'Giáo trình chuẩn quốc tế về các nguyên lý kinh tế học vĩ mô.', cover_url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&q=80' }
-        ];
+        if (method === 'POST') {
+            const categoriesList = [
+                { id: 1, name: 'Công nghệ Thông tin & AI' },
+                { id: 2, name: 'Văn học & Nghệ thuật' },
+                { id: 3, name: 'Kinh tế & Quản trị' },
+                { id: 4, name: 'Khoa học & Kỹ thuật' },
+                { id: 5, name: 'Lịch sử & Triết học' },
+                { id: 6, name: 'Kỹ năng sống & Phát triển' }
+            ];
+            const cat = categoriesList.find(c => c.id == data.category_id);
+
+            const newBook = {
+                id: Date.now(),
+                ...data,
+                category_name: cat ? cat.name : 'Khác'
+            };
+            mockStore.books.unshift(newBook);
+            saveMockStore();
+            return { message: 'Thêm sách mới thành công! (Demo Mode)', id: newBook.id };
+        }
+
+        if (method === 'PUT') {
+            const bookId = parseInt(endpoint.split('/')[2]);
+            const idx = mockStore.books.findIndex(b => b.id == bookId);
+            if (idx !== -1) {
+                const categoriesList = [
+                    { id: 1, name: 'Công nghệ Thông tin & AI' },
+                    { id: 2, name: 'Văn học & Nghệ thuật' },
+                    { id: 3, name: 'Kinh tế & Quản trị' },
+                    { id: 4, name: 'Khoa học & Kỹ thuật' },
+                    { id: 5, name: 'Lịch sử & Triết học' },
+                    { id: 6, name: 'Kỹ năng sống & Phát triển' }
+                ];
+                const cat = categoriesList.find(c => c.id == data.category_id);
+
+                mockStore.books[idx] = {
+                    ...mockStore.books[idx],
+                    ...data,
+                    category_name: cat ? cat.name : mockStore.books[idx].category_name
+                };
+                saveMockStore();
+            }
+            return { message: 'Cập nhật thông tin sách thành công! (Demo Mode)' };
+        }
+
+        if (method === 'DELETE') {
+            const bookId = parseInt(endpoint.split('/')[2]);
+            mockStore.books = mockStore.books.filter(b => b.id != bookId);
+            saveMockStore();
+            return { message: 'Đã xóa sách khỏi thư viện (Demo Mode)' };
+        }
+
+        return mockStore.books;
     }
 
-    // Readers
+    // --- READERS ---
     if (endpoint.startsWith('/readers')) {
-        return [
-            { id: 1, reader_code: 'DG001', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901234567', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
-            { id: 2, reader_code: 'DG002', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912345678', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
-            { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' }
-        ];
+        if (method === 'POST') {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const expDate = new Date(Date.now() + 730*24*60*60*1000).toISOString().split('T')[0];
+            const newReader = {
+                id: Date.now(),
+                ...data,
+                issue_date: todayStr,
+                expiry_date: expDate
+            };
+            mockStore.readers.unshift(newReader);
+            
+            // Auto create reader user account
+            mockStore.users.unshift({
+                id: Date.now() + 1,
+                username: data.reader_code.toLowerCase(),
+                role: 'reader',
+                full_name: data.full_name,
+                email: data.email,
+                created_at: todayStr
+            });
+
+            saveMockStore();
+            return { message: `Cấp thẻ độc giả thành công! Tài khoản: ${data.reader_code.toLowerCase()} / 123456`, id: newReader.id };
+        }
+
+        if (method === 'PUT') {
+            const readerId = parseInt(endpoint.split('/')[2]);
+            const idx = mockStore.readers.findIndex(r => r.id == readerId);
+            if (idx !== -1) {
+                mockStore.readers[idx] = { ...mockStore.readers[idx], ...data };
+                saveMockStore();
+            }
+            return { message: 'Cập nhật thẻ độc giả thành công! (Demo Mode)' };
+        }
+
+        return mockStore.readers;
     }
 
-    // Loans
+    // --- LOANS ---
     if (endpoint.startsWith('/loans')) {
-        return [
-            { id: 1, borrow_code: 'PM001', reader_id: 1, reader_name: 'Nguyễn Văn An', reader_code: 'DG001', book_id: 1, book_title: 'Nhập Môn Lập Trình Python', borrow_date: '2026-03-01', due_date: '2026-03-15', return_date: null, status: 'Đang mượn', fine_amount: 0, fine_status: 'N/A' },
-            { id: 2, borrow_code: 'PM002', reader_id: 2, reader_name: 'Trần Thị Bình', reader_code: 'DG002', book_id: 2, book_title: 'Trí Tuệ Nhân Tạo & Deep Learning', borrow_date: '2026-02-10', due_date: '2026-02-24', return_date: null, status: 'Quá hạn', fine_amount: 85000, fine_status: 'Chưa nộp' }
-        ];
+        if (method === 'POST' && endpoint === '/loans') {
+            const readerObj = mockStore.readers.find(r => r.id == data.reader_id);
+            const bookObj = mockStore.books.find(b => b.id == data.book_id);
+            const today = new Date();
+            const due = new Date(today.getTime() + (data.borrow_days || 14) * 24 * 60 * 60 * 1000);
+            
+            const newLoan = {
+                id: Date.now(),
+                borrow_code: `PM${Date.now().toString().slice(-6)}`,
+                reader_id: data.reader_id,
+                reader_name: readerObj ? readerObj.full_name : 'Độc giả mượn',
+                reader_code: readerObj ? readerObj.reader_code : 'DG00',
+                book_id: data.book_id,
+                book_title: bookObj ? bookObj.title : 'Sách mượn',
+                book_code: bookObj ? bookObj.book_code : 'MS00',
+                borrow_date: today.toISOString().split('T')[0],
+                due_date: due.toISOString().split('T')[0],
+                return_date: null,
+                status: 'Đang mượn',
+                renewal_count: 0,
+                fine_amount: 0,
+                fine_status: 'N/A',
+                notes: data.notes || ''
+            };
+
+            mockStore.loans.unshift(newLoan);
+            if (bookObj && bookObj.available_qty > 0) {
+                bookObj.available_qty -= 1;
+            }
+            saveMockStore();
+            return { message: `Tạo phiếu mượn ${newLoan.borrow_code} thành công! Hạn trả: ${newLoan.due_date}`, id: newLoan.id, borrow_code: newLoan.borrow_code };
+        }
+
+        return mockStore.loans;
     }
 
-    // Users
+    // --- USERS ---
     if (endpoint.startsWith('/users')) {
-        return [
-            { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn', created_at: '2025-01-01' },
-            { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn', created_at: '2025-01-05' },
-            { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', created_at: '2025-09-01' }
-        ];
+        if (method === 'POST') {
+            const newUser = {
+                id: Date.now(),
+                ...data,
+                created_at: new Date().toISOString().split('T')[0]
+            };
+            mockStore.users.unshift(newUser);
+            saveMockStore();
+            return { message: `Tạo tài khoản '${data.username}' thành công! (Demo Mode)`, id: newUser.id };
+        }
+
+        if (method === 'PUT') {
+            const userId = parseInt(endpoint.split('/')[2]);
+            const idx = mockStore.users.findIndex(u => u.id == userId);
+            if (idx !== -1) {
+                mockStore.users[idx] = { ...mockStore.users[idx], ...data };
+                saveMockStore();
+            }
+            return { message: 'Cập nhật tài khoản người dùng thành công! (Demo Mode)' };
+        }
+
+        if (method === 'DELETE') {
+            const userId = parseInt(endpoint.split('/')[2]);
+            mockStore.users = mockStore.users.filter(u => u.id != userId);
+            saveMockStore();
+            return { message: 'Đã xóa tài khoản khỏi hệ thống (Demo Mode)' };
+        }
+
+        return mockStore.users;
     }
 
-    // Reservations
-    if (endpoint.startsWith('/reservations')) {
-        return [];
-    }
-
-    // Profile
+    // Profile & Reservations
+    if (endpoint.startsWith('/reservations')) return [];
     if (endpoint.startsWith('/auth/profile')) {
         return state.currentUser || { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' };
-    }
-
-    // Generic response for mutations
-    if (method !== 'GET') {
-        return { message: 'Thao tác thành công (Demo Mode)' };
     }
 
     return [];

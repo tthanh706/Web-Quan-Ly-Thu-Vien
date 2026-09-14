@@ -527,7 +527,31 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("UPDATE books SET available_qty = available_qty - 1 WHERE id = ?", (book_id,))
 
                 conn.commit()
-                return self.send_json({"message": f"Tạo phiếu mượn thành công ({borrow_code})! Hạn trả: {due_date}"})
+                return self.send_json({"message": f"Tạo phiếu mượn thành công ({borrow_code})! Hạn trả: {due_date}", "id": cursor.lastrowid, "borrow_code": borrow_code})
+
+            # Add User Account (Admin only)
+            elif path == '/api/users':
+                username = body.get('username', '').strip().lower()
+                password = body.get('password', '').strip()
+                full_name = body.get('full_name', '').strip()
+                email = body.get('email', '').strip()
+                role = body.get('role', 'reader')
+
+                if not username or not password or not full_name:
+                    return self.send_error_json("Vui lòng điền đầy đủ Tên đăng nhập, Mật khẩu và Họ tên")
+
+                cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                if cursor.fetchone():
+                    return self.send_error_json(f"Tên đăng nhập '{username}' đã tồn tại trong hệ thống")
+
+                pass_h = hash_password(password)
+                cursor.execute('''
+                    INSERT INTO users (username, password_hash, role, full_name, email)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (username, pass_h, role, full_name, email))
+                conn.commit()
+
+                return self.send_json({"message": f"Tạo tài khoản '{username}' thành công!", "id": cursor.lastrowid})
 
             # 5. Return Book
             elif re.match(r'^/api/loans/(\d+)/return$', path):
