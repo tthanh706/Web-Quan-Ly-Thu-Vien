@@ -402,6 +402,67 @@ function getMockData(endpoint, method = 'GET', data = null) {
         return mockStore.users;
     }
 
+    // --- AI SEARCH ASSISTANT ---
+    if (endpoint.startsWith('/ai/search')) {
+        const prompt = (data && data.prompt) ? data.prompt.trim() : '';
+        const promptLower = prompt.toLowerCase();
+        
+        const words = promptLower.split(/\s+/).filter(w => w.length > 1);
+        const matches = mockStore.books.filter(b => {
+            const t = b.title.toLowerCase();
+            const a = b.author.toLowerCase();
+            const c = (b.category_name || '').toLowerCase();
+            const d = (b.description || '').toLowerCase();
+            return !promptLower || words.some(w => t.includes(w) || a.includes(w) || c.includes(w) || d.includes(w));
+        });
+
+        const topResults = matches.length > 0 ? matches.slice(0, 4) : mockStore.books.slice(0, 3);
+        const reply = matches.length > 0
+            ? `🤖 **Trợ lý AI Thư viện:** Tôi đã phân tích câu hỏi *"${prompt}"* của bạn và tìm thấy ${matches.length} cuốn sách phù hợp nhất trong thư viện:`
+            : `🤖 **Trợ lý AI Thư viện:** Tôi chưa tìm thấy sách khớp tuyệt đối với từ khóa *"${prompt}"*, nhưng xin gợi ý cho bạn một số cuốn sách nổi bật nhất:`;
+
+        return {
+            prompt: prompt,
+            ai_response: reply,
+            books: topResults
+        };
+    }
+
+    // --- AI RECOMMENDATIONS ---
+    if (endpoint.startsWith('/ai/recommend')) {
+        return {
+            ai_explanation: "🤖 **AI Recommendation Engine:** Trí tuệ nhân tạo đã tự động phân tích xu hướng đọc và gợi ý các cuốn sách phù hợp nhất cho bạn.",
+            recommendations: mockStore.books.slice(0, 4)
+        };
+    }
+
+    // --- AI SUMMARIZE ---
+    if (endpoint.startsWith('/ai/summarize')) {
+        const bookId = data ? data.book_id : null;
+        const book = mockStore.books.find(b => b.id == bookId) || mockStore.books[0];
+        
+        const title = book ? book.title : 'Sách chọn';
+        const author = book ? book.author : 'Tác giả';
+        const cat = book ? (book.category_name || 'Khác') : 'Thể loại';
+        const desc = book ? (book.description || 'Cuốn sách cung cấp nhiều kiến thức chuyên sâu và bài học giá trị.') : 'Nội dung phong phú.';
+
+        return {
+            book_id: book ? book.id : 1,
+            title: title,
+            author: author,
+            category: cat,
+            executive_summary: `Tác phẩm '${title}' của tác giả ${author} thuộc thể loại ${cat}. Đây là cuốn sách quan trọng mang lại nhiều góc nhìn thực tiễn, phân tích sâu sắc và ứng dụng hiệu quả.`,
+            key_takeaways: [
+                `Nắm vững các nguyên lý cốt lõi và tư duy căn bản của dòng sách ${cat}.`,
+                `Các phương pháp và bí quyết thành công được tác giả ${author} đúc kết từ thực tế.`,
+                `Ví dụ minh họa trực quan, sinh động, dễ áp dụng vào học tập và công việc.`,
+                `Giải pháp vượt qua những khó khăn, thách thức phổ biến trong lĩnh vực này.`
+            ],
+            target_audience: "Dành cho sinh viên, giảng viên, người nghiên cứu và độc giả mong muốn phát triển tư duy chuyên môn.",
+            full_ai_text: `💡 **Tóm tắt AI cho cuốn '${title}':**\n\n📌 **Nội dung nổi bật:** ${desc}\n\n🎯 **Đối tượng phù hợp:** Học sinh, sinh viên và độc giả quan tâm tới ${cat}.\n\n⭐ **Đánh giá AI:** 4.9/5 điểm.`
+        };
+    }
+
     // Profile & Reservations
     if (endpoint.startsWith('/reservations')) return [];
     if (endpoint.startsWith('/auth/profile')) {
