@@ -344,8 +344,29 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 ''', (user_id,))
                 user = cursor.fetchone()
                 if not user:
+                    # Fallback to readers table directly
+                    cursor.execute("SELECT * FROM readers WHERE id = ?", (user_id,))
+                    r = cursor.fetchone()
+                    if r:
+                        r_dict = dict(r)
+                        r_dict['card_status'] = r_dict.get('status', 'Hoạt động')
+                        r_dict['role'] = 'reader'
+                        r_dict['username'] = r_dict.get('reader_code', '').lower()
+                        return self.send_json(r_dict)
                     return self.send_error_json("Người dùng không tồn tại", 404)
-                return self.send_json(dict(user))
+                
+                u_dict = dict(user)
+                if u_dict['role'] == 'reader' and not u_dict.get('reader_code') and u_dict.get('reader_id'):
+                    cursor.execute("SELECT * FROM readers WHERE id = ?", (u_dict['reader_id'],))
+                    r = cursor.fetchone()
+                    if r:
+                        u_dict['reader_code'] = r['reader_code']
+                        u_dict['card_status'] = r['status']
+                        u_dict['phone'] = r['phone']
+                        u_dict['expiry_date'] = r['expiry_date']
+                        u_dict['card_type'] = r['card_type']
+
+                return self.send_json(u_dict)
 
             else:
                 return self.send_error_json("Endpoint không tồn tại", 404)

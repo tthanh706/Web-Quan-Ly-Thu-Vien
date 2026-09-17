@@ -6,6 +6,45 @@ const API_BASE = (window.location.protocol === 'http:' || window.location.protoc
     ? `${window.location.origin}/api`
     : 'http://127.0.0.1:8000/api';
 
+// --- SMART READER RESOLVER HELPER ---
+function findMatchingReader(inputStr, readersList = []) {
+    if (!inputStr) return null;
+    const list = (readersList && readersList.length > 0) ? readersList : (mockStore ? mockStore.readers : []);
+    if (!list || list.length === 0) return null;
+    
+    const cleanInput = String(inputStr).trim().toLowerCase();
+    
+    // 1. Direct match on reader_code, full_name, email, or username
+    let match = list.find(r =>
+        (r.reader_code && r.reader_code.toLowerCase() === cleanInput) ||
+        (r.full_name && r.full_name.toLowerCase() === cleanInput) ||
+        (r.email && r.email.toLowerCase() === cleanInput) ||
+        (r.username && r.username.toLowerCase() === cleanInput)
+    );
+    if (match) return match;
+
+    // 2. Extract digits from input string (e.g. 'docgia005' -> 5, 'dg05' -> 5, 'docgia4' -> 4)
+    const digits = cleanInput.replace(/\D/g, '');
+    if (digits) {
+        const numVal = parseInt(digits, 10);
+        match = list.find(r => {
+            if (r.id === numVal) return true;
+            if (r.reader_code) {
+                const codeDigits = r.reader_code.replace(/\D/g, '');
+                if (codeDigits && parseInt(codeDigits, 10) === numVal) return true;
+            }
+            if (r.username) {
+                const userDigits = r.username.replace(/\D/g, '');
+                if (userDigits && parseInt(userDigits, 10) === numVal) return true;
+            }
+            return false;
+        });
+        if (match) return match;
+    }
+
+    return null;
+}
+
 // --- STATE MANAGEMENT ---
 const state = {
     currentUser: JSON.parse(localStorage.getItem('lib_user')) || null,
@@ -125,39 +164,54 @@ async function handleLoginSubmit(e) {
         const role = userLower.includes('admin') ? 'admin' : (userLower.includes('thu') ? 'librarian' : 'reader');
         const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
         
-        let readerId = null;
-        let readerCode = null;
-        let fullName = `${username} (${roleTitle})`;
-        let email = `${username}@library.edu.vn`;
+        const matchedReader = role === 'reader' ? findMatchingReader(username, mockStore.readers) : null;
 
-        if (role === 'reader') {
-            const matchedReader = (mockStore.readers || []).find(r => 
-                r.reader_code.toLowerCase() === userLower || 
-                r.full_name.toLowerCase() === userLower ||
-                r.email.toLowerCase() === userLower
-            );
-            if (matchedReader) {
-                readerId = matchedReader.id;
-                readerCode = matchedReader.reader_code;
-                fullName = matchedReader.full_name;
-                email = matchedReader.email;
-            } else if (userLower === 'docgia2' || userLower === 'dg002') {
-                readerId = 2; readerCode = 'DG002'; fullName = 'Trần Thị Bình'; email = 'binh.tran@email.com';
-            } else if (userLower === 'docgia3' || userLower === 'dg003') {
-                readerId = 3; readerCode = 'DG003'; fullName = 'Lê Hoàng Cường'; email = 'cuong.le@email.com';
-            } else {
-                readerId = 1; readerCode = 'DG001'; fullName = 'Nguyễn Văn An'; email = 'an.nguyen@email.com';
-            }
+        let readerId = matchedReader ? matchedReader.id : null;
+        let readerCode = matchedReader ? matchedReader.reader_code : null;
+        let fullName = matchedReader ? matchedReader.full_name : `${username} (${roleTitle})`;
+        let email = matchedReader ? matchedReader.email : `${username}@library.edu.vn`;
+        let phone = matchedReader ? matchedReader.phone : '0901234567';
+        let cardStatus = matchedReader ? matchedReader.status : (role === 'reader' ? 'Hoạt động' : 'N/A');
+        let cardType = matchedReader ? matchedReader.card_type : 'Sinh viên';
+        let expiryDate = matchedReader ? matchedReader.expiry_date : '2027-09-01';
+
+        if (role === 'reader' && !matchedReader) {
+            const newId = Date.now();
+            const digits = userLower.replace(/\D/g, '');
+            readerCode = digits ? `DG${digits.padStart(2, '0')}` : `DG00${(mockStore.readers || []).length + 1}`;
+            readerId = newId;
+            fullName = username;
+            cardStatus = 'Hoạt động';
+
+            const newReader = {
+                id: newId,
+                reader_code: readerCode,
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                card_type: cardType,
+                status: cardStatus,
+                issue_date: '2025-09-01',
+                expiry_date: expiryDate
+            };
+            if (!mockStore.readers) mockStore.readers = [];
+            mockStore.readers.push(newReader);
+            saveMockStore();
         }
 
         state.currentUser = {
-            id: Math.floor(Math.random() * 1000) + 10,
+            id: readerId || Math.floor(Math.random() * 1000) + 10,
             username: username,
             role: role,
             full_name: fullName,
             email: email,
+            phone: phone,
             reader_id: readerId,
-            reader_code: readerCode
+            reader_code: readerCode,
+            card_status: cardStatus,
+            card_type: cardType,
+            expiry_date: expiryDate,
+            created_at: '2025-09-01'
         };
         localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
         showToast(`[Demo Mode] Xin chào ${state.currentUser.full_name}!`, 'success');
@@ -205,7 +259,9 @@ const mockStore = {
     readers: JSON.parse(localStorage.getItem('lib_mock_readers')) || [
         { id: 1, reader_code: 'DG001', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901234567', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
         { id: 2, reader_code: 'DG002', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912345678', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
-        { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' }
+        { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' },
+        { id: 4, reader_code: 'DG04', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', phone: '0123456789', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
+        { id: 5, reader_code: 'DG05', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', phone: '0123456789', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' }
     ],
     loans: JSON.parse(localStorage.getItem('lib_mock_loans')) || [
         { id: 1, borrow_code: 'PM001', reader_id: 1, reader_name: 'Nguyễn Văn An', reader_code: 'DG001', book_id: 1, book_title: 'Nhập Môn Lập Trình Python', book_code: 'MS001', borrow_date: '2026-03-01', due_date: '2026-03-15', return_date: null, status: 'Đang mượn', fine_amount: 0, fine_status: 'N/A' },
@@ -217,7 +273,9 @@ const mockStore = {
         { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn', created_at: '2025-01-05' },
         { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1, reader_code: 'DG001', created_at: '2025-09-01' },
         { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002', created_at: '2025-09-01' },
-        { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003', created_at: '2025-09-01' }
+        { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003', created_at: '2025-09-01' },
+        { id: 6, username: 'docgia4', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04', created_at: '2025-09-01' },
+        { id: 7, username: 'docgia5', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05', created_at: '2025-09-01' }
     ]
 };
 
@@ -243,7 +301,13 @@ function getMockData(endpoint, method = 'GET', data = null) {
             'docgia2': { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
             'dg002': { id: 4, username: 'dg002', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
             'docgia3': { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' },
-            'dg003': { id: 5, username: 'dg003', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' }
+            'dg003': { id: 5, username: 'dg003', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' },
+            'docgia4': { id: 6, username: 'docgia4', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
+            'docgia004': { id: 6, username: 'docgia004', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
+            'dg04': { id: 6, username: 'dg04', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
+            'docgia5': { id: 7, username: 'docgia5', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' },
+            'docgia005': { id: 7, username: 'docgia005', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' },
+            'dg05': { id: 7, username: 'dg05', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' }
         };
 
         if (demoUsers[username]) {
@@ -255,25 +319,54 @@ function getMockData(endpoint, method = 'GET', data = null) {
             return { user: foundUser, message: 'Đăng nhập thành công (Demo Mode)' };
         }
 
-        const matchingReader = mockStore.readers.find(r => 
-            r.reader_code.toLowerCase() === username ||
-            r.full_name.toLowerCase() === username ||
-            r.email.toLowerCase() === username
-        );
+        const matchingReader = findMatchingReader(username, mockStore.readers);
 
         const role = username.includes('admin') ? 'admin' : (username.includes('thu') ? 'librarian' : 'reader');
         const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
 
+        let userObj = {
+            id: matchingReader ? matchingReader.id : (Math.floor(Math.random() * 1000) + 10),
+            username: username,
+            role: role,
+            full_name: matchingReader ? matchingReader.full_name : `${username} (${roleTitle})`,
+            email: matchingReader ? matchingReader.email : `${username}@library.edu.vn`,
+            phone: matchingReader ? matchingReader.phone : '0901234567',
+            reader_id: matchingReader ? matchingReader.id : null,
+            reader_code: matchingReader ? matchingReader.reader_code : null,
+            card_status: matchingReader ? matchingReader.status : (role === 'reader' ? 'Hoạt động' : 'N/A'),
+            card_type: matchingReader ? matchingReader.card_type : 'Sinh viên',
+            issue_date: matchingReader ? matchingReader.issue_date : '2025-09-01',
+            expiry_date: matchingReader ? matchingReader.expiry_date : '2027-09-01',
+            created_at: matchingReader ? matchingReader.issue_date : '2025-09-01'
+        };
+
+        if (role === 'reader' && !matchingReader) {
+            const newId = Date.now();
+            const digits = username.replace(/\D/g, '');
+            const newCode = digits ? `DG${digits.padStart(2, '0')}` : `DG${mockStore.readers.length + 1}`;
+            const newReader = {
+                id: newId,
+                reader_code: newCode,
+                full_name: username,
+                email: `${username}@library.edu.vn`,
+                phone: '0901234567',
+                card_type: 'Sinh viên',
+                status: 'Hoạt động',
+                issue_date: '2025-09-01',
+                expiry_date: '2027-09-01'
+            };
+            mockStore.readers.push(newReader);
+            saveMockStore();
+
+            userObj.id = newId;
+            userObj.reader_id = newId;
+            userObj.reader_code = newCode;
+            userObj.full_name = username;
+            userObj.card_status = 'Hoạt động';
+        }
+
         return {
-            user: {
-                id: Math.floor(Math.random() * 1000) + 10,
-                username: username,
-                role: role,
-                full_name: matchingReader ? matchingReader.full_name : `${username} (${roleTitle})`,
-                email: matchingReader ? matchingReader.email : `${username}@library.edu.vn`,
-                reader_id: matchingReader ? matchingReader.id : (role === 'reader' ? 1 : null),
-                reader_code: matchingReader ? matchingReader.reader_code : (role === 'reader' ? 'DG001' : null)
-            },
+            user: userObj,
             message: 'Đăng nhập thành công (Demo Mode)'
         };
     }
@@ -738,28 +831,36 @@ async function openProfileModal() {
     openModal('profileModal');
     
     try {
-        const profile = await fetchAPI(`/auth/profile?user_id=${state.currentUser.id}`);
+        let profile = null;
+        try {
+            profile = await fetchAPI(`/auth/profile?user_id=${state.currentUser.id}`);
+        } catch (err) {
+            profile = state.currentUser;
+        }
 
-        document.getElementById('profileUserId').value = profile.id;
-        document.getElementById('profileHeaderName').textContent = profile.full_name;
-        document.getElementById('profileHeaderMeta').textContent = `@${profile.username} • Tham gia: ${(profile.created_at || '').substring(0, 10)}`;
+        if (!profile) profile = state.currentUser;
+
+        document.getElementById('profileUserId').value = profile.id || state.currentUser.id;
+        document.getElementById('profileHeaderName').textContent = profile.full_name || state.currentUser.full_name;
+        document.getElementById('profileHeaderMeta').textContent = `@${profile.username || state.currentUser.username} • Tham gia: ${(profile.created_at || profile.issue_date || '2025-09-01').substring(0, 10)}`;
         
         const badge = document.getElementById('profileHeaderRoleBadge');
-        badge.className = `role-tag ${profile.role}`;
-        badge.textContent = profile.role === 'admin' ? 'QUẢN TRỊ VIÊN' : (profile.role === 'librarian' ? 'THỦ THƯ' : 'ĐỘC GIẢ');
+        const role = profile.role || state.currentUser.role;
+        badge.className = `role-tag ${role}`;
+        badge.textContent = role === 'admin' ? 'QUẢN TRỊ VIÊN' : (role === 'librarian' ? 'THỦ THƯ' : 'ĐỘC GIẢ');
 
-        document.getElementById('profileFullName').value = profile.full_name || '';
-        document.getElementById('profileEmail').value = profile.email || '';
-        document.getElementById('profilePhone').value = profile.phone || '';
+        document.getElementById('profileFullName').value = profile.full_name || state.currentUser.full_name || '';
+        document.getElementById('profileEmail').value = profile.email || state.currentUser.email || '';
+        document.getElementById('profilePhone').value = profile.phone || state.currentUser.phone || '0901234567';
         document.getElementById('profilePassword').value = '';
 
         // Readonly Metadata
-        document.getElementById('profileUsernameText').textContent = profile.username;
-        document.getElementById('profileRoleText').textContent = profile.role.toUpperCase();
-        document.getElementById('profileReaderCodeText').textContent = profile.reader_code || 'N/A';
-        document.getElementById('profileCardStatusText').textContent = profile.card_status || 'Không áp dụng';
-        document.getElementById('profileExpiryText').textContent = profile.expiry_date || 'Vĩnh viễn';
-        document.getElementById('profileCreatedAtText').textContent = (profile.created_at || '').substring(0, 10);
+        document.getElementById('profileUsernameText').textContent = profile.username || state.currentUser.username;
+        document.getElementById('profileRoleText').textContent = (profile.role || state.currentUser.role || 'READER').toUpperCase();
+        document.getElementById('profileReaderCodeText').textContent = profile.reader_code || state.currentUser.reader_code || (profile.reader_id ? `DG${String(profile.reader_id).padStart(2, '0')}` : 'N/A');
+        document.getElementById('profileCardStatusText').textContent = profile.card_status || profile.status || state.currentUser.card_status || 'Hoạt động';
+        document.getElementById('profileExpiryText').textContent = profile.expiry_date || state.currentUser.expiry_date || '2027-09-01';
+        document.getElementById('profileCreatedAtText').textContent = (profile.created_at || profile.issue_date || '2025-09-01').substring(0, 10);
 
     } catch (err) {
         console.error("Failed loading profile", err);
