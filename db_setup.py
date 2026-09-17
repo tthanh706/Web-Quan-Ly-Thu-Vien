@@ -145,11 +145,7 @@ def init_db():
     readers_data = [
         ('DG001', 'Nguyễn Văn An', 'an.nguyen@email.com', '0901234567', 'Sinh viên', 'Hoạt động', '2025-09-01', '2027-09-01'),
         ('DG002', 'Trần Thị Bình', 'binh.tran@email.com', '0912345678', 'Sinh viên', 'Hoạt động', '2025-09-01', '2027-09-01'),
-        ('DG003', 'Lê Hoàng Cường', 'cuong.le@email.com', '0923456789', 'Giảng viên', 'Hoạt động', '2024-01-15', '2028-01-15'),
-        ('DG04', 'Trương Thị Hạnh', 'hanh@gmail.com', '0123456789', 'Sinh viên', 'Hoạt động', '2025-09-01', '2027-09-01'),
-        ('DG05', 'Nguyễn Hồng Ngọc', 'hngoc@gmail.com', '0123456789', 'Sinh viên', 'Hoạt động', '2025-09-01', '2027-09-01'),
-        ('DG006', 'Đỗ Mai Phương', 'phuong.do@email.com', '0956789012', 'Sinh viên', 'Bị khóa', '2025-09-01', '2027-09-01'),
-        ('DG007', 'Hoàng Ngọc Sơn', 'son.hoang@email.com', '0967890123', 'Giảng viên', 'Hoạt động', '2024-05-20', '2028-05-20')
+        ('DG003', 'Lê Hoàng Cường', 'cuong.le@email.com', '0923456789', 'Giảng viên', 'Hoạt động', '2024-01-15', '2028-01-15')
     ]
     cursor.executemany('''
     INSERT INTO readers (reader_code, full_name, email, phone, card_type, status, issue_date, expiry_date)
@@ -167,14 +163,6 @@ def init_db():
         ('docgia1', pass_hash_docgia, 'reader', 'Nguyễn Văn An', 'an.nguyen@email.com', 1),
         ('docgia2', pass_hash_docgia, 'reader', 'Trần Thị Bình', 'binh.tran@email.com', 2),
         ('docgia3', pass_hash_docgia, 'reader', 'Lê Hoàng Cường', 'cuong.le@email.com', 3),
-        ('docgia4', pass_hash_docgia, 'reader', 'Trương Thị Hạnh', 'hanh@gmail.com', 4),
-        ('docgia5', pass_hash_docgia, 'reader', 'Nguyễn Hồng Ngọc', 'hngoc@gmail.com', 5),
-        ('docgia004', pass_hash_docgia, 'reader', 'Trương Thị Hạnh', 'docgia004@email.com', 4),
-        ('docgia005', pass_hash_docgia, 'reader', 'Nguyễn Hồng Ngọc', 'docgia005@email.com', 5),
-        ('dg04', pass_hash_docgia, 'reader', 'Trương Thị Hạnh', 'dg04@email.com', 4),
-        ('dg05', pass_hash_docgia, 'reader', 'Nguyễn Hồng Ngọc', 'dg05@email.com', 5),
-        ('dg004', pass_hash_docgia, 'reader', 'Trương Thị Hạnh', 'dg004@email.com', 4),
-        ('dg005', pass_hash_docgia, 'reader', 'Nguyễn Hồng Ngọc', 'dg005@email.com', 5),
         ('dg001', pass_hash_docgia, 'reader', 'Nguyễn Văn An', 'dg001@email.com', 1),
         ('dg002', pass_hash_docgia, 'reader', 'Trần Thị Bình', 'dg002@email.com', 2),
         ('dg003', pass_hash_docgia, 'reader', 'Lê Hoàng Cường', 'dg003@email.com', 3),
@@ -257,7 +245,7 @@ def init_db():
         ('PM002', 2, 2, '2026-08-20', '2026-09-03', None, 'Đang mượn', 1, 0, 'N/A', 'Đã gia hạn 1 lần (+7 ngày)'),
         ('PM003', 2, 5, '2026-08-01', '2026-08-15', None, 'Quá hạn', 0, 140000, 'Chưa nộp', 'Quá hạn 28 ngày'),
         ('PM004', 3, 3, '2026-08-10', '2026-08-24', '2026-08-22', 'Đã trả', 0, 0, 'N/A', 'Trả sách đúng hạn'),
-        ('PM005', 4, 7, '2026-07-01', '2026-07-15', '2026-07-20', 'Đã trả', 0, 25000, 'Đã nộp', 'Quá hạn 5 ngày - đã nộp tiền phạt'),
+        ('PM005', 2, 7, '2026-07-01', '2026-07-15', '2026-07-20', 'Đã trả', 0, 25000, 'Đã nộp', 'Quá hạn 5 ngày - đã nộp tiền phạt'),
         ('PM006', 1, 6, '2026-08-25', '2026-09-08', None, 'Đang mượn', 0, 0, 'N/A', 'Mượn nghiên cứu Quản trị Kinh doanh')
     ]
     cursor.executemany('''
@@ -268,7 +256,7 @@ def init_db():
     # 6. Fine Logs
     cursor.execute('''
     INSERT INTO fine_logs (borrow_id, reader_id, amount, reason, paid_at, payment_method)
-    VALUES (5, 4, 25000, 'Phạt trả quá hạn 5 ngày cho sách MS004', '2026-07-20 10:30:00', 'Tiền mặt')
+    VALUES (5, 2, 25000, 'Phạt trả quá hạn 5 ngày cho sách MS004', '2026-07-20 10:30:00', 'Tiền mặt')
     ''')
 
     # 7. Reservations

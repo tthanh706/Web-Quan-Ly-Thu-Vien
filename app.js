@@ -68,6 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    // Auto-clean obsolete mock reader cache if present
+    try {
+        ['lib_mock_readers', 'lib_mock_users'].forEach(key => {
+            const val = localStorage.getItem(key);
+            if (val && (val.includes('DG04') || val.includes('DG05') || val.includes('DG006') || val.includes('Trương Thị Hạnh') || val.includes('Hồng Ngọc'))) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (e) {}
+
     setupEventListeners();
     try {
         await loadCategories();
@@ -259,9 +269,7 @@ const mockStore = {
     readers: JSON.parse(localStorage.getItem('lib_mock_readers')) || [
         { id: 1, reader_code: 'DG001', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901234567', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
         { id: 2, reader_code: 'DG002', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912345678', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
-        { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' },
-        { id: 4, reader_code: 'DG04', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', phone: '0123456789', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' },
-        { id: 5, reader_code: 'DG05', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', phone: '0123456789', card_type: 'Sinh viên', status: 'Hoạt động', issue_date: '2025-09-01', expiry_date: '2027-09-01' }
+        { id: 3, reader_code: 'DG003', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', phone: '0923456789', card_type: 'Giảng viên', status: 'Hoạt động', issue_date: '2024-01-15', expiry_date: '2028-01-15' }
     ],
     loans: JSON.parse(localStorage.getItem('lib_mock_loans')) || [
         { id: 1, borrow_code: 'PM001', reader_id: 1, reader_name: 'Nguyễn Văn An', reader_code: 'DG001', book_id: 1, book_title: 'Nhập Môn Lập Trình Python', book_code: 'MS001', borrow_date: '2026-03-01', due_date: '2026-03-15', return_date: null, status: 'Đang mượn', fine_amount: 0, fine_status: 'N/A' },
@@ -273,9 +281,7 @@ const mockStore = {
         { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn', created_at: '2025-01-05' },
         { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1, reader_code: 'DG001', created_at: '2025-09-01' },
         { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002', created_at: '2025-09-01' },
-        { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003', created_at: '2025-09-01' },
-        { id: 6, username: 'docgia4', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04', created_at: '2025-09-01' },
-        { id: 7, username: 'docgia5', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05', created_at: '2025-09-01' }
+        { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003', created_at: '2025-09-01' }
     ]
 };
 
@@ -301,13 +307,7 @@ function getMockData(endpoint, method = 'GET', data = null) {
             'docgia2': { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
             'dg002': { id: 4, username: 'dg002', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
             'docgia3': { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' },
-            'dg003': { id: 5, username: 'dg003', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' },
-            'docgia4': { id: 6, username: 'docgia4', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
-            'docgia004': { id: 6, username: 'docgia004', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
-            'dg04': { id: 6, username: 'dg04', role: 'reader', full_name: 'Trương Thị Hạnh', email: 'hanh@gmail.com', reader_id: 4, reader_code: 'DG04' },
-            'docgia5': { id: 7, username: 'docgia5', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' },
-            'docgia005': { id: 7, username: 'docgia005', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' },
-            'dg05': { id: 7, username: 'dg05', role: 'reader', full_name: 'Nguyễn Hồng Ngọc', email: 'hngoc@gmail.com', reader_id: 5, reader_code: 'DG05' }
+            'dg003': { id: 5, username: 'dg003', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' }
         };
 
         if (demoUsers[username]) {
