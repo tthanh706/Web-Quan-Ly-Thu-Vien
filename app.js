@@ -121,15 +121,43 @@ async function handleLoginSubmit(e) {
         checkAuthState();
     } catch (err) {
         // Universal Fallback for Static Hosting / Offline Server
-        const role = username.toLowerCase().includes('admin') ? 'admin' : (username.toLowerCase().includes('thu') ? 'librarian' : 'reader');
+        const userLower = username.toLowerCase();
+        const role = userLower.includes('admin') ? 'admin' : (userLower.includes('thu') ? 'librarian' : 'reader');
         const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
         
+        let readerId = null;
+        let readerCode = null;
+        let fullName = `${username} (${roleTitle})`;
+        let email = `${username}@library.edu.vn`;
+
+        if (role === 'reader') {
+            const matchedReader = (mockStore.readers || []).find(r => 
+                r.reader_code.toLowerCase() === userLower || 
+                r.full_name.toLowerCase() === userLower ||
+                r.email.toLowerCase() === userLower
+            );
+            if (matchedReader) {
+                readerId = matchedReader.id;
+                readerCode = matchedReader.reader_code;
+                fullName = matchedReader.full_name;
+                email = matchedReader.email;
+            } else if (userLower === 'docgia2' || userLower === 'dg002') {
+                readerId = 2; readerCode = 'DG002'; fullName = 'Trần Thị Bình'; email = 'binh.tran@email.com';
+            } else if (userLower === 'docgia3' || userLower === 'dg003') {
+                readerId = 3; readerCode = 'DG003'; fullName = 'Lê Hoàng Cường'; email = 'cuong.le@email.com';
+            } else {
+                readerId = 1; readerCode = 'DG001'; fullName = 'Nguyễn Văn An'; email = 'an.nguyen@email.com';
+            }
+        }
+
         state.currentUser = {
             id: Math.floor(Math.random() * 1000) + 10,
             username: username,
             role: role,
-            full_name: `${username} (${roleTitle})`,
-            email: `${username}@library.edu.vn`
+            full_name: fullName,
+            email: email,
+            reader_id: readerId,
+            reader_code: readerCode
         };
         localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
         showToast(`[Demo Mode] Xin chào ${state.currentUser.full_name}!`, 'success');
@@ -181,12 +209,15 @@ const mockStore = {
     ],
     loans: JSON.parse(localStorage.getItem('lib_mock_loans')) || [
         { id: 1, borrow_code: 'PM001', reader_id: 1, reader_name: 'Nguyễn Văn An', reader_code: 'DG001', book_id: 1, book_title: 'Nhập Môn Lập Trình Python', book_code: 'MS001', borrow_date: '2026-03-01', due_date: '2026-03-15', return_date: null, status: 'Đang mượn', fine_amount: 0, fine_status: 'N/A' },
-        { id: 2, borrow_code: 'PM002', reader_id: 2, reader_name: 'Trần Thị Bình', reader_code: 'DG002', book_id: 2, book_title: 'Trí Tuệ Nhân Tạo & Deep Learning', book_code: 'MS002', borrow_date: '2026-02-10', due_date: '2026-02-24', return_date: null, status: 'Quá hạn', fine_amount: 85000, fine_status: 'Chưa nộp' }
+        { id: 2, borrow_code: 'PM002', reader_id: 2, reader_name: 'Trần Thị Bình', reader_code: 'DG002', book_id: 2, book_title: 'Trí Tuệ Nhân Tạo & Deep Learning', book_code: 'MS002', borrow_date: '2026-02-10', due_date: '2026-02-24', return_date: null, status: 'Quá hạn', fine_amount: 85000, fine_status: 'Chưa nộp' },
+        { id: 3, borrow_code: 'PM003', reader_id: 3, reader_name: 'Lê Hoàng Cường', reader_code: 'DG003', book_id: 3, book_title: 'Đắc Nhân Tâm', book_code: 'MS003', borrow_date: '2026-01-05', due_date: '2026-01-19', return_date: '2026-01-18', status: 'Đã trả', fine_amount: 0, fine_status: 'N/A' }
     ],
     users: JSON.parse(localStorage.getItem('lib_mock_users')) || [
         { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn', created_at: '2025-01-01' },
         { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn', created_at: '2025-01-05' },
-        { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', created_at: '2025-09-01' }
+        { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1, reader_code: 'DG001', created_at: '2025-09-01' },
+        { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002', created_at: '2025-09-01' },
+        { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003', created_at: '2025-09-01' }
     ]
 };
 
@@ -202,24 +233,35 @@ function saveMockStore() {
 function getMockData(endpoint, method = 'GET', data = null) {
     // Auth Login
     if (endpoint === '/auth/login' && method === 'POST') {
-        const username = (data && data.username) ? data.username.trim() : 'User';
+        const username = (data && data.username) ? data.username.trim().toLowerCase() : 'user';
 
         const demoUsers = {
             'admin': { id: 1, username: 'admin', role: 'admin', full_name: 'Quản trị viên Hệ thống', email: 'admin@library.edu.vn' },
             'thuthu1': { id: 2, username: 'thuthu1', role: 'librarian', full_name: 'Thủ thư Nguyễn Thị Mai', email: 'mai.thuthu@library.edu.vn' },
-            'docgia1': { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1 }
+            'docgia1': { id: 3, username: 'docgia1', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1, reader_code: 'DG001' },
+            'dg001': { id: 3, username: 'dg001', role: 'reader', full_name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', reader_id: 1, reader_code: 'DG001' },
+            'docgia2': { id: 4, username: 'docgia2', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
+            'dg002': { id: 4, username: 'dg002', role: 'reader', full_name: 'Trần Thị Bình', email: 'binh.tran@email.com', reader_id: 2, reader_code: 'DG002' },
+            'docgia3': { id: 5, username: 'docgia3', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' },
+            'dg003': { id: 5, username: 'dg003', role: 'reader', full_name: 'Lê Hoàng Cường', email: 'cuong.le@email.com', reader_id: 3, reader_code: 'DG003' }
         };
 
         if (demoUsers[username]) {
             return { user: demoUsers[username], message: 'Đăng nhập thành công (Demo Mode)' };
         }
 
-        const foundUser = mockStore.users.find(u => u.username === username);
+        const foundUser = mockStore.users.find(u => u.username.toLowerCase() === username);
         if (foundUser) {
             return { user: foundUser, message: 'Đăng nhập thành công (Demo Mode)' };
         }
 
-        const role = username.toLowerCase().includes('admin') ? 'admin' : (username.toLowerCase().includes('thu') ? 'librarian' : 'reader');
+        const matchingReader = mockStore.readers.find(r => 
+            r.reader_code.toLowerCase() === username ||
+            r.full_name.toLowerCase() === username ||
+            r.email.toLowerCase() === username
+        );
+
+        const role = username.includes('admin') ? 'admin' : (username.includes('thu') ? 'librarian' : 'reader');
         const roleTitle = role === 'admin' ? 'Quản trị viên' : (role === 'librarian' ? 'Thủ thư' : 'Độc giả');
 
         return {
@@ -227,8 +269,10 @@ function getMockData(endpoint, method = 'GET', data = null) {
                 id: Math.floor(Math.random() * 1000) + 10,
                 username: username,
                 role: role,
-                full_name: `${username} (${roleTitle})`,
-                email: `${username}@library.edu.vn`
+                full_name: matchingReader ? matchingReader.full_name : `${username} (${roleTitle})`,
+                email: matchingReader ? matchingReader.email : `${username}@library.edu.vn`,
+                reader_id: matchingReader ? matchingReader.id : (role === 'reader' ? 1 : null),
+                reader_code: matchingReader ? matchingReader.reader_code : (role === 'reader' ? 'DG001' : null)
             },
             message: 'Đăng nhập thành công (Demo Mode)'
         };
@@ -394,7 +438,34 @@ function getMockData(endpoint, method = 'GET', data = null) {
             return { message: `Tạo phiếu mượn ${newLoan.borrow_code} thành công! Hạn trả: ${newLoan.due_date}`, id: newLoan.id, borrow_code: newLoan.borrow_code };
         }
 
-        return mockStore.loans;
+        let filteredLoans = [...mockStore.loans];
+
+        // Parse query params if present (e.g. /loans?reader_id=2&status=Quá hạn)
+        if (endpoint.includes('?')) {
+            const queryString = endpoint.split('?')[1];
+            const params = new URLSearchParams(queryString);
+            const readerId = params.get('reader_id');
+            const status = params.get('status');
+            const q = params.get('q');
+
+            if (readerId) {
+                filteredLoans = filteredLoans.filter(l => l.reader_id == readerId);
+            }
+            if (status && status !== 'all') {
+                filteredLoans = filteredLoans.filter(l => l.status === status);
+            }
+            if (q) {
+                const qLower = q.toLowerCase();
+                filteredLoans = filteredLoans.filter(l =>
+                    (l.borrow_code || '').toLowerCase().includes(qLower) ||
+                    (l.reader_name || '').toLowerCase().includes(qLower) ||
+                    (l.reader_code || '').toLowerCase().includes(qLower) ||
+                    (l.book_title || '').toLowerCase().includes(qLower)
+                );
+            }
+        }
+
+        return filteredLoans;
     }
 
     // --- USERS ---
@@ -1493,14 +1564,42 @@ async function loadLoans() {
 
 async function loadMyLoans() {
     if (!state.currentUser) return;
-    const readerId = state.currentUser.reader_id;
+
+    let readerId = state.currentUser.reader_id;
+
+    // If currentUser is reader but reader_id is missing, try resolving it
+    if (!readerId && state.currentUser.role === 'reader') {
+        try {
+            if (!state.readers || state.readers.length === 0) {
+                state.readers = await fetchAPI('/readers');
+            }
+            const userLower = (state.currentUser.username || '').toLowerCase();
+            const matching = (state.readers || []).find(r =>
+                r.reader_code.toLowerCase() === userLower ||
+                (r.email && r.email.toLowerCase() === (state.currentUser.email || '').toLowerCase()) ||
+                r.full_name === state.currentUser.full_name
+            );
+            if (matching) {
+                readerId = matching.id;
+                state.currentUser.reader_id = matching.id;
+                state.currentUser.reader_code = matching.reader_code;
+                localStorage.setItem('lib_user', JSON.stringify(state.currentUser));
+            }
+        } catch (e) {
+            console.warn("Could not resolve reader_id automatically:", e);
+        }
+    }
+
     if (!readerId) {
         renderMyLoansTable([]);
         return;
     }
+
     try {
         const myLoans = await fetchAPI(`/loans?reader_id=${readerId}`);
-        renderMyLoansTable(myLoans);
+        // Client-side strict filter by reader_id as double safety
+        const filtered = Array.isArray(myLoans) ? myLoans.filter(l => l.reader_id == readerId) : [];
+        renderMyLoansTable(filtered);
     } catch (err) {
         console.error("Failed loading personal loans", err);
     }

@@ -26,7 +26,7 @@ def init_db():
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL, -- 'admin', 'librarian', 'reader'
         full_name TEXT NOT NULL,
-        email TEXT UNIQUE,
+        email TEXT,
         reader_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (reader_id) REFERENCES readers(id) ON DELETE SET NULL
@@ -167,6 +167,9 @@ def init_db():
         ('docgia1', pass_hash_docgia, 'reader', 'Nguyễn Văn An', 'an.nguyen@email.com', 1),
         ('docgia2', pass_hash_docgia, 'reader', 'Trần Thị Bình', 'binh.tran@email.com', 2),
         ('docgia3', pass_hash_docgia, 'reader', 'Lê Hoàng Cường', 'cuong.le@email.com', 3),
+        ('dg001', pass_hash_docgia, 'reader', 'Nguyễn Văn An', 'dg001@email.com', 1),
+        ('dg002', pass_hash_docgia, 'reader', 'Trần Thị Bình', 'dg002@email.com', 2),
+        ('dg003', pass_hash_docgia, 'reader', 'Lê Hoàng Cường', 'dg003@email.com', 3),
     ]
     cursor.executemany('''
     INSERT INTO users (username, password_hash, role, full_name, email, reader_id)
@@ -243,11 +246,11 @@ def init_db():
     # 5. Borrow Records
     borrow_records_data = [
         ('PM001', 1, 1, '2026-08-15', '2026-08-29', None, 'Đang mượn', 0, 0, 'N/A', 'Mượn phục vụ bài tập lớn Python'),
-        ('PM002', 1, 2, '2026-08-20', '2026-09-03', None, 'Đang mượn', 1, 0, 'N/A', 'Đã gia hạn 1 lần (+7 ngày)'),
+        ('PM002', 2, 2, '2026-08-20', '2026-09-03', None, 'Đang mượn', 1, 0, 'N/A', 'Đã gia hạn 1 lần (+7 ngày)'),
         ('PM003', 2, 5, '2026-08-01', '2026-08-15', None, 'Quá hạn', 0, 140000, 'Chưa nộp', 'Quá hạn 28 ngày'),
         ('PM004', 3, 3, '2026-08-10', '2026-08-24', '2026-08-22', 'Đã trả', 0, 0, 'N/A', 'Trả sách đúng hạn'),
         ('PM005', 4, 7, '2026-07-01', '2026-07-15', '2026-07-20', 'Đã trả', 0, 25000, 'Đã nộp', 'Quá hạn 5 ngày - đã nộp tiền phạt'),
-        ('PM006', 2, 1, '2026-08-25', '2026-09-08', None, 'Đang mượn', 0, 0, 'N/A', 'Mượn nghiên cứu AI')
+        ('PM006', 1, 6, '2026-08-25', '2026-09-08', None, 'Đang mượn', 0, 0, 'N/A', 'Mượn nghiên cứu Quản trị Kinh doanh')
     ]
     cursor.executemany('''
     INSERT INTO borrow_records (borrow_code, reader_id, book_id, borrow_date, due_date, return_date, status, renewal_count, fine_amount, fine_status, notes)

@@ -382,8 +382,8 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                     SELECT u.id, u.username, u.role, u.full_name, u.email, u.reader_id, r.reader_code, r.status as card_status
                     FROM users u
                     LEFT JOIN readers r ON u.reader_id = r.id
-                    WHERE u.username = ? AND u.password_hash = ?
-                ''', (username, pass_h))
+                    WHERE (LOWER(u.username) = LOWER(?) OR LOWER(r.reader_code) = LOWER(?)) AND u.password_hash = ?
+                ''', (username, username, pass_h))
                 user = cursor.fetchone()
 
                 if not user:
@@ -393,21 +393,33 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Auto bind clean reader record if user is reader role but has no reader_id
                 if user_data['role'] == 'reader' and not user_data['reader_id']:
-                    cursor.execute("SELECT COUNT(*) as cnt FROM readers")
-                    cnt = cursor.fetchone()['cnt'] + 1
-                    r_code = f"DG{cnt:03d}"
-                    issue_dt = datetime.now().strftime('%Y-%m-%d')
-                    exp_dt = (datetime.now() + timedelta(days=730)).strftime('%Y-%m-%d')
                     cursor.execute('''
-                        INSERT INTO readers (reader_code, full_name, email, phone, card_type, status, issue_date, expiry_date)
-                        VALUES (?, ?, ?, '0901234567', 'Sinh viên', 'Hoạt động', ?, ?)
-                    ''', (r_code, user_data['full_name'], user_data['email'] or 'docgia@library.edu.vn', issue_dt, exp_dt))
-                    new_r_id = cursor.lastrowid
+                        SELECT id, reader_code, status FROM readers 
+                        WHERE LOWER(email) = LOWER(?) OR LOWER(full_name) = LOWER(?) OR LOWER(reader_code) = LOWER(?)
+                    ''', (user_data['email'] or '', user_data['full_name'] or '', user_data['username'] or ''))
+                    existing_r = cursor.fetchone()
+                    if existing_r:
+                        new_r_id = existing_r['id']
+                        r_code = existing_r['reader_code']
+                        card_status = existing_r['status']
+                    else:
+                        cursor.execute("SELECT COUNT(*) as cnt FROM readers")
+                        cnt = cursor.fetchone()['cnt'] + 1
+                        r_code = f"DG{cnt:03d}"
+                        issue_dt = datetime.now().strftime('%Y-%m-%d')
+                        exp_dt = (datetime.now() + timedelta(days=730)).strftime('%Y-%m-%d')
+                        cursor.execute('''
+                            INSERT INTO readers (reader_code, full_name, email, phone, card_type, status, issue_date, expiry_date)
+                            VALUES (?, ?, ?, '0901234567', 'Sinh viên', 'Hoạt động', ?, ?)
+                        ''', (r_code, user_data['full_name'], user_data['email'] or 'docgia@library.edu.vn', issue_dt, exp_dt))
+                        new_r_id = cursor.lastrowid
+                        card_status = 'Hoạt động'
+
                     cursor.execute("UPDATE users SET reader_id = ? WHERE id = ?", (new_r_id, user_data['id']))
                     conn.commit()
                     user_data['reader_id'] = new_r_id
                     user_data['reader_code'] = r_code
-                    user_data['card_status'] = 'Hoạt động'
+                    user_data['card_status'] = card_status
 
                 return self.send_json({
                     "message": "Đăng nhập thành công",
