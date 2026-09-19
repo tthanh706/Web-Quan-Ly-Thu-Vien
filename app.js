@@ -498,6 +498,84 @@ function getMockData(endpoint, method = 'GET', data = null) {
 
     // --- LOANS ---
     if (endpoint.startsWith('/loans')) {
+        // Return book
+        const returnMatch = endpoint.match(/\/loans\/(\d+)\/return$/);
+        if (returnMatch && method === 'POST') {
+            const loanId = parseInt(returnMatch[1]);
+            const loan = mockStore.loans.find(l => l.id == loanId);
+            if (!loan) throw new Error("Phiếu mượn không tồn tại");
+            if (loan.status === 'Đã trả') throw new Error("Phiếu mượn này đã được hoàn tất trả sách trước đó");
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            let fineAmount = 0;
+            let fineStatus = 'N/A';
+
+            if (loan.due_date && todayStr > loan.due_date) {
+                const dueDt = new Date(loan.due_date);
+                const retDt = new Date(todayStr);
+                const daysOverdue = Math.max(1, Math.floor((retDt - dueDt) / (1000 * 60 * 60 * 24)));
+                fineAmount = daysOverdue * 5000;
+                fineStatus = 'Chưa nộp';
+            }
+
+            loan.status = 'Đã trả';
+            loan.return_date = todayStr;
+            loan.fine_amount = fineAmount;
+            loan.fine_status = fineStatus;
+
+            // Restock book
+            const book = mockStore.books.find(b => b.id == loan.book_id);
+            if (book) {
+                book.available_qty = (book.available_qty || 0) + 1;
+            }
+
+            saveMockStore();
+
+            let msg = `Trả sách thành công! (Demo Mode)`;
+            if (fineAmount > 0) {
+                msg += ` Sách bị trễ hạn. Số tiền phạt: ${fineAmount.toLocaleString()} VNĐ.`;
+            }
+            return { message: msg, fine_amount: fineAmount };
+        }
+
+        // Renew loan
+        const renewMatch = endpoint.match(/\/loans\/(\d+)\/renew$/);
+        if (renewMatch && method === 'POST') {
+            const loanId = parseInt(renewMatch[1]);
+            const loan = mockStore.loans.find(l => l.id == loanId);
+            if (!loan) throw new Error("Phiếu mượn không tồn tại");
+            if (loan.status === 'Đã trả') throw new Error("Sách đã được trả, không thể gia hạn");
+            if ((loan.renewal_count || 0) >= 2) throw new Error("Phiếu mượn này đã đạt giới hạn tối đa 2 lần gia hạn!");
+
+            const currentDue = new Date(loan.due_date || Date.now());
+            currentDue.setDate(currentDue.getDate() + 7);
+            const newDueStr = currentDue.toISOString().split('T')[0];
+
+            loan.due_date = newDueStr;
+            loan.renewal_count = (loan.renewal_count || 0) + 1;
+            if (loan.status === 'Quá hạn') {
+                loan.status = 'Đang mượn';
+            }
+
+            saveMockStore();
+            return { message: `Gia hạn thành công! Hạn trả mới: ${newDueStr} (Lần gia hạn ${loan.renewal_count}/2) (Demo Mode)` };
+        }
+
+        // Pay fine
+        const payFineMatch = endpoint.match(/\/loans\/(\d+)\/pay-fine$/);
+        if (payFineMatch && method === 'POST') {
+            const loanId = parseInt(payFineMatch[1]);
+            const loan = mockStore.loans.find(l => l.id == loanId);
+            if (!loan) throw new Error("Phiếu mượn không tồn tại");
+            if (!loan.fine_amount || loan.fine_amount <= 0 || loan.fine_status === 'Đã nộp') {
+                throw new Error("Không có khoản tiền phạt nào cần nộp cho phiếu này");
+            }
+
+            loan.fine_status = 'Đã nộp';
+            saveMockStore();
+            return { message: `Nộp tiền phạt ${loan.fine_amount.toLocaleString()} VNĐ thành công! (Demo Mode)` };
+        }
+
         if (method === 'POST' && endpoint === '/loans') {
             const readerObj = mockStore.readers.find(r => r.id == data.reader_id);
             const bookObj = mockStore.books.find(b => b.id == data.book_id);
@@ -678,14 +756,24 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, options);
-        const result = await response.json();
+        let result = {};
+        try {
+            result = await response.json();
+        } catch (e) {}
 
         if (!response.ok) {
-            throw new Error(result.error || `Lỗi HTTP: ${response.status}`);
+            const apiError = new Error(result.error || `Lỗi HTTP: ${response.status}`);
+            apiError.isHttpError = true;
+            throw apiError;
         }
         return result;
     } catch (err) {
-        // Fallback to Demo Mock Data for Static GitHub Pages
+        if (err.isHttpError) {
+            showToast(err.message, 'error');
+            throw err;
+        }
+
+        // Fallback to Demo Mock Data for Static GitHub Pages / Offline Server
         try {
             const mock = getMockData(endpoint, method, data);
             if (mock !== null) return mock;
@@ -1863,30 +1951,39 @@ async function processReturn(loanId) {
     if (!confirm("Xác nhận hoàn tất thủ tục TRẢ SÁCH cho phiếu mượn này?")) return;
     try {
         const res = await fetchAPI(`/loans/${loanId}/return`, 'POST');
-        showToast(res.message, 'success');
+        if (res && res.message) showToast(res.message, 'success');
         await loadLoans();
         await loadBooks();
         await loadDashboardData();
-    } catch (err) {}
+        if (state.activeTab === 'my-loans') await loadMyLoans();
+    } catch (err) {
+        console.error("Lỗi trả sách:", err);
+    }
 }
 
 async function processRenew(loanId) {
     try {
         const res = await fetchAPI(`/loans/${loanId}/renew`, 'POST');
-        showToast(res.message, 'success');
+        if (res && res.message) showToast(res.message, 'success');
         await loadLoans();
+        await loadDashboardData();
         if (state.activeTab === 'my-loans') await loadMyLoans();
-    } catch (err) {}
+    } catch (err) {
+        console.error("Lỗi gia hạn:", err);
+    }
 }
 
 async function processPayFine(loanId) {
     if (!confirm("Xác nhận đã thu đủ số tiền phạt trễ hạn của độc giả?")) return;
     try {
         const res = await fetchAPI(`/loans/${loanId}/pay-fine`, 'POST');
-        showToast(res.message, 'success');
+        if (res && res.message) showToast(res.message, 'success');
         await loadLoans();
         await loadDashboardData();
-    } catch (err) {}
+        if (state.activeTab === 'my-loans') await loadMyLoans();
+    } catch (err) {
+        console.error("Lỗi thu phạt:", err);
+    }
 }
 
 // --- BOOK RESERVATIONS ---

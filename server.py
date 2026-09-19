@@ -656,12 +656,14 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 current_due = datetime.strptime(loan['due_date'], '%Y-%m-%d')
                 new_due = (current_due + timedelta(days=7)).strftime('%Y-%m-%d')
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                new_status = 'Đang mượn' if new_due >= today_str else loan['status']
 
                 cursor.execute('''
                     UPDATE borrow_records
-                    SET due_date = ?, renewal_count = renewal_count + 1
+                    SET due_date = ?, renewal_count = renewal_count + 1, status = ?
                     WHERE id = ?
-                ''', (new_due, loan_id))
+                ''', (new_due, new_status, loan_id))
 
                 conn.commit()
                 return self.send_json({"message": f"Gia hạn thành công! Hạn trả mới: {new_due} (Lần gia hạn {loan['renewal_count'] + 1}/2)"})
