@@ -962,56 +962,11 @@ function setupEventListeners() {
     });
     document.getElementById('refreshAiRecBtn').addEventListener('click', loadAiRecommendations);
 
-    // Gemini API Key Management
-    const saveKeyBtn = document.getElementById('saveGeminiKeyBtn');
-    const clearKeyBtn = document.getElementById('clearGeminiKeyBtn');
-    if (saveKeyBtn) {
-        saveKeyBtn.addEventListener('click', () => {
-            const keyVal = document.getElementById('geminiApiKeyInput').value.trim();
-            if (!keyVal) {
-                showToast('Vui lòng nhập Gemini API Key (AIzaSy...)', 'warning');
-                return;
-            }
-            localStorage.setItem('gemini_api_key', keyVal);
-            showToast('Đã kết nối và lưu Gemini API Key thành công!', 'success');
-            initGeminiKeyUI();
-        });
-    }
-    if (clearKeyBtn) {
-        clearKeyBtn.addEventListener('click', () => {
-            localStorage.removeItem('gemini_api_key');
-            showToast('Đã xóa Gemini API Key. Chuyển về RAG Local.', 'info');
-            initGeminiKeyUI();
-        });
-    }
-    initGeminiKeyUI();
-
     // Export Buttons
     document.getElementById('exportBooksBtn').addEventListener('click', exportBooksCSV);
     document.getElementById('exportReadersBtn').addEventListener('click', exportReadersCSV);
     document.getElementById('exportLoansBtn').addEventListener('click', exportLoansCSV);
     document.getElementById('printFullReportBtn').addEventListener('click', openFullReportPrint);
-}
-
-function initGeminiKeyUI() {
-    const key = (localStorage.getItem('gemini_api_key') || '').trim();
-    const badge = document.getElementById('geminiStatusBadge');
-    const input = document.getElementById('geminiApiKeyInput');
-    const clearBtn = document.getElementById('clearGeminiKeyBtn');
-
-    if (!badge || !input) return;
-
-    if (key) {
-        badge.className = 'badge badge-success';
-        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã kết nối Gemini AI';
-        input.value = key;
-        if (clearBtn) clearBtn.style.display = 'inline-flex';
-    } else {
-        badge.className = 'badge badge-secondary';
-        badge.textContent = 'Chế độ RAG Local';
-        input.value = '';
-        if (clearBtn) clearBtn.style.display = 'none';
-    }
 }
 
 // --- USER PROFILE MODAL HANDLERS ---

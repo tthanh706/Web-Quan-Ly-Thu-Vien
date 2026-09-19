@@ -6,6 +6,8 @@ import os
 import sys
 import re
 import hashlib
+import urllib.request
+import ssl
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 
@@ -25,6 +27,63 @@ def get_db():
 
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+def get_gemini_api_key():
+    # 1. Environment Variable
+    env_key = os.environ.get('GEMINI_API_KEY', '').strip()
+    if env_key:
+        return env_key
+    # 2. File gemini_key.txt on server
+    key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gemini_key.txt')
+    if os.path.exists(key_path):
+        try:
+            with open(key_path, 'r', encoding='utf-8') as f:
+                k = f.read().strip()
+                if k:
+                    return k
+        except Exception:
+            pass
+    return ""
+
+def call_gemini_api(api_key, sys_prompt, user_prompt):
+    models = [
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-pro"
+    ]
+    ctx = ssl._create_unverified_context()
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": f"{sys_prompt}\n\nCÂU HỎI NGƯỜI DÙNG: {user_prompt}"
+                    }
+                ]
+            }
+        ]
+    }
+    encoded = json.dumps(payload).encode('utf-8')
+    last_err = None
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        req = urllib.request.Request(url, data=encoded, headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=15) as response:
+                res_json = json.loads(response.read().decode('utf-8'))
+                if 'candidates' in res_json and len(res_json['candidates']) > 0:
+                    candidate = res_json['candidates'][0]
+                    if 'content' in candidate and 'parts' in candidate['content']:
+                        parts = candidate['content']['parts']
+                        reply = "".join([p.get('text', '') for p in parts if 'text' in p])
+                        if reply:
+                            return reply
+        except Exception as e:
+            last_err = e
+            print(f"[Gemini API Log] Model '{model}' failed: {e}")
+            continue
+    raise Exception(f"Tất cả các model Gemini đều thất bại. Lỗi: {last_err}")
 
 class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
 
@@ -721,7 +780,7 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
             # 9. AI Search Assistant (RAG & General Conversational AI)
             elif path == '/api/ai/search':
                 prompt = body.get('prompt', '').strip()
-                api_key = (body.get('api_key') or os.environ.get('GEMINI_API_KEY', '')).strip()
+                api_key = (body.get('api_key') or get_gemini_api_key()).strip()
 
                 if not prompt:
                     return self.send_error_json("Vui lòng nhập nội dung tìm kiếm hoặc câu hỏi cho Trợ lý AI")
@@ -774,26 +833,15 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                             "QUY ĐỊNH THƯ VIỆN: Thời hạn mượn 14 ngày, gia hạn tối đa 2 lần (+7 ngày/lần), phạt 5.000 VNĐ/ngày trễ, thẻ độc giả 2 năm."
                         )
                         
-                        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-                        payload_data = {
-                            "contents": [{ "parts": [{ "text": f"{sys_prompt}\n\nCÂU HỎI NGƯỜI DÙNG: {prompt}" }] }]
-                        }
-                        req = urllib.request.Request(
-                            gemini_url,
-                            data=json.dumps(payload_data).encode('utf-8'),
-                            headers={'Content-Type': 'application/json'}
-                        )
-                        with urllib.request.urlopen(req, timeout=12) as response:
-                            res_json = json.loads(response.read().decode('utf-8'))
-                            gemini_reply = res_json['candidates'][0]['content']['parts'][0]['text']
-                            display_books = top_results if top_results else all_books[:3]
-                            return self.send_json({
-                                "prompt": prompt,
-                                "ai_response": f"🤖 **Trợ lý Gemini AI (RAG Live):**\n\n{gemini_reply}",
-                                "books": display_books
-                            })
+                        gemini_reply = call_gemini_api(api_key, sys_prompt, prompt)
+                        display_books = top_results if top_results else all_books[:3]
+                        return self.send_json({
+                            "prompt": prompt,
+                            "ai_response": f"🤖 **Trợ lý Gemini AI (RAG Live):**\n\n{gemini_reply}",
+                            "books": display_books
+                        })
                     except Exception as g_err:
-                        print(f"Gemini API Error: {str(g_err)}. Falling back to Local RAG Engine.")
+                        print(f"[Gemini API Notice] {g_err}. Falling back to Local RAG Engine.")
 
                 # Local RAG Conversational Fallback Engine
                 ai_reply = ""
@@ -829,13 +877,15 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                     ai_reply = "🤖 **Trợ lý AI (RAG System):** Dịch vụ Đặt trước sách:\n- Khi cuốn sách hết bản sẵn có (Tồn: 0), bạn có thể nhấn **Đặt trước** để vào hàng chờ tự động."
 
                 # 4. General Knowledge & Q&A Classifier
-                elif any(k in prompt_lower for k in ['chào', 'hello', 'hi', 'xin chào', 'bạn là ai', 'giới thiệu']):
+                elif 'thủ đô' in prompt_lower:
+                    ai_reply = "🇻🇳 **Trợ lý AI (Địa lý & Lịch sử):** Thủ đô của nước Cộng hòa Xã hội Chủ nghĩa Việt Nam hiện nay là **thành phố Hà Nội**."
+                elif re.search(r'\b(chào|hello|hi|xin chào)\b', prompt_lower) or any(k in prompt_lower for k in ['bạn là ai', 'giới thiệu']):
                     ai_reply = "🤖 **Trợ lý Trí tuệ Nhân tạo (AI Chatbot):** Xin chào! Tôi là Trợ lý AI đa năng tích hợp công nghệ RAG của Thư viện ICTU. Tôi có thể hỗ trợ bạn:\n1. **Giải đáp thông tin trường ICTU & quy định thư viện**\n2. **Trả lời mọi câu hỏi kiến thức** (CNTT, AI, Khoa học, Lịch sử, Địa lý, Toán học, Văn học...)\n3. **Tra cứu & Gợi ý sách** thông minh trong kho dữ liệu\n\nBạn cần hỗ trợ thông tin gì hôm nay?"
                 elif any(k in prompt_lower for k in ['python', 'lập trình', 'code', 'cú pháp', 'java', 'javascript', 'ai là gì', 'deep learning', 'máy học']):
                     ai_reply = f"🤖 **Trợ lý AI (Kiến thức Công nghệ & Lập trình):**\nĐể học và phát triển kỹ năng lập trình:\n- **Python**: Ngôn ngữ cú pháp rõ ràng, rất thích hợp cho người mới bắt đầu, phân tích dữ liệu và Học máy (AI/Deep Learning).\n- **Cốt lõi**: Nắm vững cấu trúc điều khiển (`if/else`), vòng lặp (`for/while`), hàm (`def`), và lập trình hướng đối tượng (OOP)."
                 elif any(k in prompt_lower for k in ['toán', 'phương trình', 'công thức', 'tính', 'giải', 'diện tích', 'chu vi', 'bán kính']):
                     ai_reply = f"🤖 **Trợ lý AI (Toán học & Khoa học):**\nTôi đã phân tích câu hỏi toán học/khoa học *\"{prompt}\"* của bạn. Nếu bạn cần tính toán cụ thể hoặc giải từng bước bài tập, hãy gửi chi tiết đề bài để tôi giải đáp nhé!"
-                elif any(k in prompt_lower for k in ['thủ đô', 'nước', 'quốc gia', 'lịch sử', 'chiến tranh', 'địa lý', 'thời kỳ', 'thế giới']):
+                elif any(k in prompt_lower for k in ['quốc gia', 'lịch sử', 'chiến tranh', 'địa lý', 'thời kỳ', 'thế giới']):
                     ai_reply = f"🤖 **Trợ lý AI (Lịch sử & Địa lý):**\nTôi đã tiếp nhận câu hỏi *\"{prompt}\"* của bạn. Bạn có thể đặt câu hỏi chi tiết hơn về các mốc lịch sử, sự kiện thế giới hoặc vị trí địa lý để tôi cung cấp câu trả lời chính xác nhất!"
                 elif any(k in prompt_lower for k in ['kỹ năng', 'giao tiếp', 'đắc nhân tâm', 'thành công', 'tư duy', 'thói quen', 'quản lý thời gian', 'tài chính']):
                     ai_reply = f"🤖 **Trợ lý AI (Phát triển Bản thân & Kỹ năng):**\nĐể phát triển bản thân và tư duy tích cực:\n1. Duy trì **thói quen đọc sách** hàng ngày để nâng cao tri thức.\n2. Tăng cường **kỹ năng giao tiếp và thấu hiểu** trong công việc và cuộc sống.\n3. Quản lý thời gian hiệu quả và thiết lập mục tiêu rõ ràng."
