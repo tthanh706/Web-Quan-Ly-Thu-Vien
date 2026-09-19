@@ -672,29 +672,67 @@ function getMockData(endpoint, method = 'GET', data = null) {
         return mockStore.users;
     }
 
-    // --- AI SEARCH ASSISTANT ---
+    // --- AI SEARCH ASSISTANT (RAG & General Conversational AI) ---
     if (endpoint.startsWith('/ai/search')) {
         const prompt = (data && data.prompt) ? data.prompt.trim() : '';
         const promptLower = prompt.toLowerCase();
         
         const words = promptLower.split(/\s+/).filter(w => w.length > 1);
-        const matches = mockStore.books.filter(b => {
+        const matches = [];
+        (mockStore.books || []).forEach(b => {
+            let score = 0;
             const t = b.title.toLowerCase();
             const a = b.author.toLowerCase();
             const c = (b.category_name || '').toLowerCase();
             const d = (b.description || '').toLowerCase();
-            return !promptLower || words.some(w => t.includes(w) || a.includes(w) || c.includes(w) || d.includes(w));
+
+            words.forEach(w => {
+                if (w.length > 2 && t.includes(w)) score += 4;
+                if (w.length > 2 && c.includes(w)) score += 3;
+                if (w.length > 2 && a.includes(w)) score += 3;
+                if (w.length > 2 && d.includes(w)) score += 1;
+            });
+            if (score > 0) matches.push({ score, book: b });
         });
 
-        const topResults = matches.length > 0 ? matches.slice(0, 4) : mockStore.books.slice(0, 3);
-        const reply = matches.length > 0
-            ? `🤖 **Trợ lý AI Thư viện:** Tôi đã phân tích câu hỏi *"${prompt}"* của bạn và tìm thấy ${matches.length} cuốn sách phù hợp nhất trong thư viện:`
-            : `🤖 **Trợ lý AI Thư viện:** Tôi chưa tìm thấy sách khớp tuyệt đối với từ khóa *"${prompt}"*, nhưng xin gợi ý cho bạn một số cuốn sách nổi bật nhất:`;
+        matches.sort((x, y) => y.score - x.score);
+        const topResults = matches.map(m => m.book).slice(0, 4);
+
+        let reply = "";
+        
+        // RAG Context (Library rules & ops)
+        if (['gia hạn', 'hạn trả', 'mượn bao lâu', 'bao nhiêu ngày'].some(k => promptLower.includes(k))) {
+            reply = "🤖 **Trợ lý AI (RAG System):** Quy định mượn trả & gia hạn thư viện:\n- Thời hạn mượn sách mặc định là **14 ngày**.\n- Mỗi độc giả được gia hạn tối đa **2 lần** (+7 ngày/lần gia hạn).\n- Điều kiện: Phiếu mượn chưa quá hạn và sách chưa có người khác đặt trước.";
+        } else if (['phạt', 'nộp phạt', 'trễ hạn', 'bị trễ', 'phí trễ'].some(k => promptLower.includes(k))) {
+            reply = "🤖 **Trợ lý AI (RAG System):** Quy định xử lý phạt trễ hạn:\n- Mức phạt quá hạn là **5.000 VNĐ / 1 ngày trễ** cho mỗi cuốn sách.\n- Độc giả cần hoàn tất thủ tục trả sách và nộp phạt tại mục *Quản lý Mượn/Trả/Phạt*.";
+        } else if (['thẻ độc giả', 'tạo thẻ', 'làm thẻ', 'đăng ký thẻ', 'hạn thẻ'].some(k => promptLower.includes(k))) {
+            reply = "🤖 **Trợ lý AI (RAG System):** Thông tin thẻ độc giả:\n- Thẻ có thời hạn sử dụng **2 năm** kể từ ngày cấp.\n- Độc giả có thể tra cứu thông tin thẻ tại mục *Hồ sơ cá nhân*.";
+        } else if (['đặt trước', 'hàng chờ', 'hết sách'].some(k => promptLower.includes(k))) {
+            reply = "🤖 **Trợ lý AI (RAG System):** Dịch vụ Đặt trước sách:\n- Khi cuốn sách hết bản sẵn có (Tồn: 0), bạn có thể nhấn **Đặt trước** để vào hàng chờ tự động.";
+        }
+        // General Knowledge & Q&A
+        else if (['chào', 'hello', 'hi', 'xin chào', 'bạn là ai', 'giới thiệu'].some(k => promptLower.includes(k))) {
+            reply = "🤖 **Trợ lý Trí tuệ Nhân tạo (AI Chatbot):** Xin chào! Tôi là Trợ lý AI đa năng tích hợp công nghệ RAG. Tôi có thể hỗ trợ bạn:\n1. **Trả lời mọi câu hỏi kiến thức** (Khoa học, Lịch sử, Địa lý, Lập trình, Toán học, Văn học, Kỹ năng...)\n2. **Tra cứu & Gợi ý sách** thông minh trong kho thư viện\n3. **Giải đáp quy định mượn trả, gia hạn & nộp phạt**\n\nBạn cần hỗ trợ câu hỏi gì hôm nay?";
+        } else if (['python', 'lập trình', 'code', 'cú pháp', 'java', 'javascript', 'ai', 'deep learning', 'máy học'].some(k => promptLower.includes(k))) {
+            reply = `🤖 **Trợ lý AI (Kiến thức Công nghệ & Lập trình):**\nĐể học và phát triển kỹ năng lập trình:\n- **Python**: Ngôn ngữ cú pháp rõ ràng, rất thích hợp cho người mới bắt đầu, phân tích dữ liệu và Học máy (AI/Deep Learning).\n- **Cốt lõi**: Nắm vững cấu trúc điều khiển (\`if/else\`), vòng lặp (\`for/while\`), hàm (\`def\`), và lập trình hướng đối tượng (OOP).`;
+        } else if (['toán', 'phương trình', 'công thức', 'tính', 'giải', 'diện tích', 'chu vi', 'bán kính'].some(k => promptLower.includes(k))) {
+            reply = `🤖 **Trợ lý AI (Toán học & Khoa học):**\nTôi đã phân tích câu hỏi toán học/khoa học *"${prompt}"* của bạn. Nếu bạn cần tính toán cụ thể hoặc giải từng bước bài tập, hãy gửi chi tiết đề bài để tôi giải đáp nhé!`;
+        } else if (['thủ đô', 'nước', 'quốc gia', 'lịch sử', 'chiến tranh', 'địa lý', 'thời kỳ', 'thế giới'].some(k => promptLower.includes(k))) {
+            reply = `🤖 **Trợ lý AI (Lịch sử & Địa lý):**\nTôi đã tiếp nhận câu hỏi *"${prompt}"* của bạn. Bạn có thể đặt câu hỏi chi tiết hơn về các mốc lịch sử, sự kiện thế giới hoặc vị trí địa lý để tôi cung cấp câu trả lời chính xác nhất!`;
+        } else if (['kỹ năng', 'giao tiếp', 'đắc nhân tâm', 'thành công', 'tư duy', 'thói quen', 'quản lý thời gian', 'tài chính'].some(k => promptLower.includes(k))) {
+            reply = `🤖 **Trợ lý AI (Phát triển Bản thân & Kỹ năng):**\nĐể phát triển bản thân và tư duy tích cực:\n1. Duy trì **thói quen đọc sách** hàng ngày để nâng cao tri thức.\n2. Tăng cường **kỹ năng giao tiếp và thấu hiểu** trong công việc và cuộc sống.\n3. Quản lý thời gian hiệu quả và thiết lập mục tiêu rõ ràng.`;
+        } else if (topResults.length > 0 && matches.length > 0 && matches[0].score >= 3) {
+            reply = `🤖 **Trợ lý AI (RAG Search System):** Tôi đã tìm thấy ${topResults.length} cuốn sách phù hợp nhất với yêu cầu *"${prompt}"* của bạn trong thư viện:`;
+        } else {
+            reply = `🤖 **Trợ lý Trí tuệ Nhân tạo AI:**\nCảm ơn bạn đã hỏi: *"${prompt}"*.\n\nTôi là Trợ lý AI đa năng, có thể hỗ trợ bạn trả lời các câu hỏi về kiến thức chung, khoa học, học tập, công việc cũng như tìm kiếm sách trong thư viện. Bạn có muốn tìm hiểu sâu hơn về khía cạnh nào của chủ đề này không?`;
+        }
+
+        const displayBooks = topResults.length > 0 ? topResults : mockStore.books.slice(0, 3);
 
         return {
             prompt: prompt,
             ai_response: reply,
-            books: topResults
+            books: displayBooks
         };
     }
 

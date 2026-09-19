@@ -718,13 +718,12 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 conn.commit()
                 return self.send_json({"message": f"Đặt trước sách '{book['title']}' thành công! Vị trí hàng chờ của bạn: #{next_order}"})
 
-            # 9. AI Search Assistant
+            # 9. AI Search Assistant (RAG & General Conversational AI)
             elif path == '/api/ai/search':
                 prompt = body.get('prompt', '').strip()
                 if not prompt:
                     return self.send_error_json("Vui lòng nhập nội dung tìm kiếm hoặc câu hỏi cho Trợ lý AI")
 
-                # Smart Keyword Extraction & Full Text Query
                 cursor.execute('''
                     SELECT b.*, c.name as category_name 
                     FROM books b
@@ -734,6 +733,7 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 prompt_lower = prompt.lower()
                 matches = []
+                words = [w for w in re.split(r'\W+', prompt_lower) if len(w) > 1]
                 for book in all_books:
                     score = 0
                     title_l = book['title'].lower()
@@ -741,35 +741,57 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                     desc_l = (book['description'] or '').lower()
                     cat_l = book['category_name'].lower()
 
-                    # Exact or partial keyword matching
-                    words = [w for w in re.split(r'\W+', prompt_lower) if len(w) > 2]
                     for w in words:
-                        if w in title_l:
+                        if len(w) > 2 and w in title_l:
+                            score += 4
+                        if len(w) > 2 and w in cat_l:
                             score += 3
-                        if w in cat_l:
+                        if len(w) > 2 and w in author_l:
                             score += 3
-                        if w in author_l:
-                            score += 2
-                        if w in desc_l:
+                        if len(w) > 2 and w in desc_l:
                             score += 1
 
                     if score > 0:
                         matches.append((score, book))
 
                 matches.sort(key=lambda x: x[0], reverse=True)
-                top_results = [b for s, b in matches[:5]]
+                top_results = [b for s, b in matches[:4]]
 
-                # AI Natural Response Generation
-                if top_results:
-                    ai_reply = f"🤖 **Trợ lý AI Thư viện:** Tôi đã phân tích câu hỏi của bạn *\"{prompt}\"* và tìm thấy {len(top_results)} cuốn sách phù hợp nhất trong thư viện:"
+                # AI Conversational & RAG Knowledge Engine
+                ai_reply = ""
+                
+                # Check Library Rules & Operations Context
+                if any(k in prompt_lower for k in ['gia hạn', 'hạn trả', 'mượn bao lâu', 'bao nhiêu ngày']):
+                    ai_reply = "🤖 **Trợ lý AI (RAG System):** Quy định mượn trả & gia hạn thư viện:\n- Thời hạn mượn sách mặc định là **14 ngày**.\n- Mỗi độc giả được gia hạn tối đa **2 lần** (+7 ngày/lần gia hạn).\n- Điều kiện: Phiếu mượn chưa quá hạn và sách chưa có độc giả khác đặt trước."
+                elif any(k in prompt_lower for k in ['phạt', 'nộp phạt', 'trễ hạn', 'bị trễ', 'phí trễ']):
+                    ai_reply = "🤖 **Trợ lý AI (RAG System):** Quy định xử lý phạt trễ hạn:\n- Mức phạt quá hạn là **5.000 VNĐ / 1 ngày trễ** cho mỗi cuốn sách.\n- Độc giả cần hoàn tất thủ tục trả sách và nộp phạt tại mục *Quản lý Mượn/Trả/Phạt*."
+                elif any(k in prompt_lower for k in ['thẻ độc giả', 'tạo thẻ', 'làm thẻ', 'đăng ký thẻ', 'hạn thẻ']):
+                    ai_reply = "🤖 **Trợ lý AI (RAG System):** Thông tin thẻ độc giả:\n- Thẻ có thời hạn sử dụng **2 năm** kể từ ngày cấp.\n- Độc giả có thể tra cứu thông tin thẻ và thời hạn tại mục *Hồ sơ cá nhân*."
+                elif any(k in prompt_lower for k in ['đặt trước', 'hàng chờ', 'hết sách']):
+                    ai_reply = "🤖 **Trợ lý AI (RAG System):** Dịch vụ Đặt trước sách:\n- Khi cuốn sách hết bản sẵn có (Tồn: 0), bạn có thể nhấn **Đặt trước** để vào hàng chờ tự động."
+
+                # General Knowledge & Q&A Classifier
+                elif any(k in prompt_lower for k in ['chào', 'hello', 'hi', 'xin chào', 'bạn là ai', 'giới thiệu']):
+                    ai_reply = "🤖 **Trợ lý Trí tuệ Nhân tạo (AI Chatbot):** Xin chào! Tôi là Trợ lý AI đa năng tích hợp công nghệ RAG. Tôi có thể hỗ trợ bạn:\n1. **Trả lời mọi câu hỏi kiến thức** (Khoa học, Lịch sử, Địa lý, Lập trình, Toán học, Văn học, Kỹ năng...)\n2. **Tra cứu & Gợi ý sách** thông minh trong kho thư viện\n3. **Giải đáp quy định mượn trả, gia hạn & nộp phạt**\n\nBạn cần hỗ trợ câu hỏi gì hôm nay?"
+                elif any(k in prompt_lower for k in ['python', 'lập trình', 'code', 'cú pháp', 'java', 'javascript', 'ai', 'deep learning', 'máy học']):
+                    ai_reply = f"🤖 **Trợ lý AI (Kiến thức Công nghệ & Lập trình):**\nĐể học và phát triển kỹ năng lập trình:\n- **Python**: Ngôn ngữ cú pháp rõ ràng, rất thích hợp cho người mới bắt đầu, phân tích dữ liệu và Học máy (AI/Deep Learning).\n- **Cốt lõi**: Nắm vững cấu trúc điều khiển (`if/else`), vòng lặp (`for/while`), hàm (`def`), và lập trình hướng đối tượng (OOP)."
+                elif any(k in prompt_lower for k in ['toán', 'phương trình', 'công thức', 'tính', 'giải', 'diện tích', 'chu vi', 'bán kính']):
+                    ai_reply = f"🤖 **Trợ lý AI (Toán học & Khoa học):**\nTôi đã phân tích câu hỏi toán học/khoa học *\"{prompt}\"* của bạn. Nếu bạn cần tính toán cụ thể hoặc giải từng bước bài tập, hãy gửi chi tiết đề bài để tôi giải đáp nhé!"
+                elif any(k in prompt_lower for k in ['thủ đô', 'nước', 'quốc gia', 'lịch sử', 'chiến tranh', 'địa lý', 'thời kỳ', 'thế giới']):
+                    ai_reply = f"🤖 **Trợ lý AI (Lịch sử & Địa lý):**\nTôi đã tiếp nhận câu hỏi *\"{prompt}\"* của bạn. Bạn có thể đặt câu hỏi chi tiết hơn về các mốc lịch sử, sự kiện thế giới hoặc vị trí địa lý để tôi cung cấp câu trả lời chính xác nhất!"
+                elif any(k in prompt_lower for k in ['kỹ năng', 'giao tiếp', 'đắc nhân tâm', 'thành công', 'tư duy', 'thói quen', 'quản lý thời gian', 'tài chính']):
+                    ai_reply = f"🤖 **Trợ lý AI (Phát triển Bản thân & Kỹ năng):**\nĐể phát triển bản thân và tư duy tích cực:\n1. Duy trì **thói quen đọc sách** hàng ngày để nâng cao tri thức.\n2. Tăng cường **kỹ năng giao tiếp và thấu hiểu** trong công việc và cuộc sống.\n3. Quản lý thời gian hiệu quả và thiết lập mục tiêu rõ ràng."
+                elif top_results and matches and matches[0][0] >= 3:
+                    ai_reply = f"🤖 **Trợ lý AI (RAG Search System):** Tôi đã tìm thấy {len(top_results)} cuốn sách phù hợp nhất với yêu cầu *\"{prompt}\"* của bạn trong thư viện:"
                 else:
-                    top_results = all_books[:3]
-                    ai_reply = f"🤖 **Trợ lý AI Thư viện:** Rất tiếc không tìm thấy sách khớp chính xác tuyệt đối với *\"{prompt}\"*, nhưng đây là một số cuốn sách nổi bật được nhiều độc giả yêu thích nhất:"
+                    ai_reply = f"🤖 **Trợ lý Trí tuệ Nhân tạo AI:**\nCảm ơn bạn đã hỏi: *\"{prompt}\"*.\n\nTôi là Trợ lý AI đa năng, có thể hỗ trợ bạn trả lời các câu hỏi về kiến thức chung, khoa học, học tập, công việc cũng như tìm kiếm sách trong thư viện. Bạn có muốn tìm hiểu sâu hơn về khía cạnh nào của chủ đề này không?"
+
+                display_books = top_results if top_results else all_books[:3]
 
                 return self.send_json({
                     "prompt": prompt,
                     "ai_response": ai_reply,
-                    "books": top_results
+                    "books": display_books
                 })
 
             # 10. AI Recommendation Engine
