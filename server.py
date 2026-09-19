@@ -760,8 +760,28 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 # AI Conversational & RAG Knowledge Engine
                 ai_reply = ""
                 
-                # Check Library Rules & Operations Context
-                if any(k in prompt_lower for k in ['gia hạn', 'hạn trả', 'mượn bao lâu', 'bao nhiêu ngày']):
+                # 1. ICTU & University Knowledge Context
+                if any(k in prompt_lower for k in ['ictu', 'công nghệ thông tin và truyền thông thái nguyên', 'truyền thông thái nguyên', 'đại học cntt & tt', 'đại học cntt và truyền thông', 'tnu']):
+                    ai_reply = (
+                        "🏫 **ICTU (Trường Đại học Công nghệ Thông tin và Truyền thông - Đại học Thái Nguyên):**\n\n"
+                        "• **Tên đầy đủ:** Trường Đại học Công nghệ Thông tin và Truyền thông - ĐH Thái Nguyên.\n"
+                        "• **Tên tiếng Anh:** University of Information and Communication Technology (ICTU).\n"
+                        "• **Địa chỉ:** Đường Z115, xã Quyết Thắng, Thành phố Thái Nguyên, tỉnh Thái Nguyên.\n"
+                        "• **Giới thiệu:** ICTU là trường đại học công lập hàng đầu tại khu vực Trung du và Miền núi phía Bắc chuyên đào tạo nguồn nhân lực chất lượng cao về Công nghệ thông tin, Trí tuệ nhân tạo (AI), Khoa học dữ liệu, Công nghệ kỹ thuật điện tử - viễn thông, Truyền thông đa phương tiện và Kinh tế số.\n"
+                        "• **Thư viện ICTU:** Trang bị hàng chục nghìn đầu sách giáo trình, tài liệu chuyên ngành cùng hệ thống tra cứu RAG thông minh phục vụ cho học tập và nghiên cứu."
+                    )
+
+                # 2. RAG & AI Concept Knowledge
+                elif any(k in prompt_lower for k in ['rag là gì', 'công nghệ rag', 'retrieval augmented generation']):
+                    ai_reply = (
+                        "🤖 **RAG (Retrieval-Augmented Generation):**\n\n"
+                        "RAG là kỹ thuật tiên tiến trong Trí tuệ Nhân tạo kết hợp giữa Mô hình Ngôn ngữ lớn (LLM) và Cơ sở dữ liệu tri thức thực tế.\n"
+                        "- **Cơ chế hoạt động:** Khi người dùng gửi câu hỏi, RAG sẽ **truy xuất (Retrieval)** các tài liệu, sách, bản ghi liên quan trong CSDL nội bộ, sau đó **tổng hợp (Augmented Generation)** để tạo ra câu trả lời chính xác, tránh hiện tượng ảo giác (hallucination).\n"
+                        "- **Ứng dụng:** Được tích hợp trực tiếp trong Thư viện thông minh này để giúp bạn tra cứu sách và thông tin mượn trả tức thì!"
+                    )
+
+                # 3. Check Library Rules & Operations Context
+                elif any(k in prompt_lower for k in ['gia hạn', 'hạn trả', 'mượn bao lâu', 'bao nhiêu ngày']):
                     ai_reply = "🤖 **Trợ lý AI (RAG System):** Quy định mượn trả & gia hạn thư viện:\n- Thời hạn mượn sách mặc định là **14 ngày**.\n- Mỗi độc giả được gia hạn tối đa **2 lần** (+7 ngày/lần gia hạn).\n- Điều kiện: Phiếu mượn chưa quá hạn và sách chưa có độc giả khác đặt trước."
                 elif any(k in prompt_lower for k in ['phạt', 'nộp phạt', 'trễ hạn', 'bị trễ', 'phí trễ']):
                     ai_reply = "🤖 **Trợ lý AI (RAG System):** Quy định xử lý phạt trễ hạn:\n- Mức phạt quá hạn là **5.000 VNĐ / 1 ngày trễ** cho mỗi cuốn sách.\n- Độc giả cần hoàn tất thủ tục trả sách và nộp phạt tại mục *Quản lý Mượn/Trả/Phạt*."
@@ -770,10 +790,10 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 elif any(k in prompt_lower for k in ['đặt trước', 'hàng chờ', 'hết sách']):
                     ai_reply = "🤖 **Trợ lý AI (RAG System):** Dịch vụ Đặt trước sách:\n- Khi cuốn sách hết bản sẵn có (Tồn: 0), bạn có thể nhấn **Đặt trước** để vào hàng chờ tự động."
 
-                # General Knowledge & Q&A Classifier
+                # 4. General Knowledge & Q&A Classifier
                 elif any(k in prompt_lower for k in ['chào', 'hello', 'hi', 'xin chào', 'bạn là ai', 'giới thiệu']):
-                    ai_reply = "🤖 **Trợ lý Trí tuệ Nhân tạo (AI Chatbot):** Xin chào! Tôi là Trợ lý AI đa năng tích hợp công nghệ RAG. Tôi có thể hỗ trợ bạn:\n1. **Trả lời mọi câu hỏi kiến thức** (Khoa học, Lịch sử, Địa lý, Lập trình, Toán học, Văn học, Kỹ năng...)\n2. **Tra cứu & Gợi ý sách** thông minh trong kho thư viện\n3. **Giải đáp quy định mượn trả, gia hạn & nộp phạt**\n\nBạn cần hỗ trợ câu hỏi gì hôm nay?"
-                elif any(k in prompt_lower for k in ['python', 'lập trình', 'code', 'cú pháp', 'java', 'javascript', 'ai', 'deep learning', 'máy học']):
+                    ai_reply = "🤖 **Trợ lý Trí tuệ Nhân tạo (AI Chatbot):** Xin chào! Tôi là Trợ lý AI đa năng tích hợp công nghệ RAG của Thư viện ICTU. Tôi có thể hỗ trợ bạn:\n1. **Giải đáp thông tin trường ICTU & quy định thư viện**\n2. **Trả lời mọi câu hỏi kiến thức** (CNTT, AI, Khoa học, Lịch sử, Địa lý, Toán học, Văn học...)\n3. **Tra cứu & Gợi ý sách** thông minh trong kho dữ liệu\n\nBạn cần hỗ trợ thông tin gì hôm nay?"
+                elif any(k in prompt_lower for k in ['python', 'lập trình', 'code', 'cú pháp', 'java', 'javascript', 'ai là gì', 'deep learning', 'máy học']):
                     ai_reply = f"🤖 **Trợ lý AI (Kiến thức Công nghệ & Lập trình):**\nĐể học và phát triển kỹ năng lập trình:\n- **Python**: Ngôn ngữ cú pháp rõ ràng, rất thích hợp cho người mới bắt đầu, phân tích dữ liệu và Học máy (AI/Deep Learning).\n- **Cốt lõi**: Nắm vững cấu trúc điều khiển (`if/else`), vòng lặp (`for/while`), hàm (`def`), và lập trình hướng đối tượng (OOP)."
                 elif any(k in prompt_lower for k in ['toán', 'phương trình', 'công thức', 'tính', 'giải', 'diện tích', 'chu vi', 'bán kính']):
                     ai_reply = f"🤖 **Trợ lý AI (Toán học & Khoa học):**\nTôi đã phân tích câu hỏi toán học/khoa học *\"{prompt}\"* của bạn. Nếu bạn cần tính toán cụ thể hoặc giải từng bước bài tập, hãy gửi chi tiết đề bài để tôi giải đáp nhé!"
@@ -781,10 +801,13 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                     ai_reply = f"🤖 **Trợ lý AI (Lịch sử & Địa lý):**\nTôi đã tiếp nhận câu hỏi *\"{prompt}\"* của bạn. Bạn có thể đặt câu hỏi chi tiết hơn về các mốc lịch sử, sự kiện thế giới hoặc vị trí địa lý để tôi cung cấp câu trả lời chính xác nhất!"
                 elif any(k in prompt_lower for k in ['kỹ năng', 'giao tiếp', 'đắc nhân tâm', 'thành công', 'tư duy', 'thói quen', 'quản lý thời gian', 'tài chính']):
                     ai_reply = f"🤖 **Trợ lý AI (Phát triển Bản thân & Kỹ năng):**\nĐể phát triển bản thân và tư duy tích cực:\n1. Duy trì **thói quen đọc sách** hàng ngày để nâng cao tri thức.\n2. Tăng cường **kỹ năng giao tiếp và thấu hiểu** trong công việc và cuộc sống.\n3. Quản lý thời gian hiệu quả và thiết lập mục tiêu rõ ràng."
+                elif 'là gì' in prompt_lower or 'là ai' in prompt_lower:
+                    topic = prompt.replace('là gì', '').replace('Là gì', '').replace('là ai', '').replace('Là ai', '').replace('?', '').strip()
+                    ai_reply = f"🤖 **Giải đáp Trí tuệ Nhân tạo AI:**\n\n**{topic}** là khái niệm / đối tượng được tìm hiểu nhiều trong nghiên cứu và học tập. Bạn có thể tra cứu thêm các cuốn sách tài liệu chuyên ngành liên quan được liệt kê trong kho thư viện bên dưới!"
                 elif top_results and matches and matches[0][0] >= 3:
                     ai_reply = f"🤖 **Trợ lý AI (RAG Search System):** Tôi đã tìm thấy {len(top_results)} cuốn sách phù hợp nhất với yêu cầu *\"{prompt}\"* của bạn trong thư viện:"
                 else:
-                    ai_reply = f"🤖 **Trợ lý Trí tuệ Nhân tạo AI:**\nCảm ơn bạn đã hỏi: *\"{prompt}\"*.\n\nTôi là Trợ lý AI đa năng, có thể hỗ trợ bạn trả lời các câu hỏi về kiến thức chung, khoa học, học tập, công việc cũng như tìm kiếm sách trong thư viện. Bạn có muốn tìm hiểu sâu hơn về khía cạnh nào của chủ đề này không?"
+                    ai_reply = f"🤖 **Trợ lý Trí tuệ Nhân tạo AI:**\nCảm ơn bạn đã gửi câu hỏi: *\"{prompt}\"*.\n\nTôi là Trợ lý AI đa năng, có thể hỗ trợ bạn giải đáp thông tin về trường ICTU, trả lời câu hỏi kiến thức chung cũng như tìm kiếm sách trong thư viện. Bạn có muốn tìm hiểu sâu hơn về khía cạnh nào của chủ đề này không?"
 
                 display_books = top_results if top_results else all_books[:3]
 
