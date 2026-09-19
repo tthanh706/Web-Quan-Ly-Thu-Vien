@@ -1467,31 +1467,13 @@ async function handleBookSubmit(e) {
     try {
         if (id) {
             const res = await fetchAPI(`/books/${id}`, 'PUT', data);
-            
-            // Update state.books in memory for immediate UI update & Demo Mode
-            const idx = state.books.findIndex(b => b.id == id);
-            if (idx !== -1) {
-                const categoryObj = state.categories.find(c => c.id == data.category_id);
-                state.books[idx] = {
-                    ...state.books[idx],
-                    ...data,
-                    category_name: categoryObj ? categoryObj.name : state.books[idx].category_name
-                };
-            }
             showToast(res.message || 'Cập nhật thông tin sách thành công!', 'success');
         } else {
             const res = await fetchAPI('/books', 'POST', data);
-            const categoryObj = state.categories.find(c => c.id == data.category_id);
-            const newBook = {
-                id: res.id || Date.now(),
-                ...data,
-                category_name: categoryObj ? categoryObj.name : 'Chưa phân loại'
-            };
-            state.books.unshift(newBook);
             showToast(res.message || 'Thêm sách mới thành công!', 'success');
         }
         closeModal('bookModal');
-        filterBooks();
+        await loadBooks();
     } catch (err) {
         console.error("Lỗi khi lưu thông tin sách:", err);
     }
@@ -1512,10 +1494,11 @@ async function deleteBook(id) {
     if (!confirm(`Bạn có chắc chắn muốn xóa "${bookTitle}" khỏi thư viện không?`)) return;
     try {
         const res = await fetchAPI(`/books/${id}`, 'DELETE');
-        state.books = state.books.filter(b => b.id != id);
         showToast(res.message || 'Đã xóa sách khỏi hệ thống', 'success');
-        filterBooks();
-    } catch (err) {}
+        await loadBooks();
+    } catch (err) {
+        console.error("Lỗi khi xóa sách:", err);
+    }
 }
 
 // --- ADMIN USER MANAGEMENT & ROLE ASSIGNMENT ---
