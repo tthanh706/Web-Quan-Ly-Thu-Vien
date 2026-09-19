@@ -562,6 +562,20 @@
                                 </div>
                             </div>
 
+                            <!-- Gemini API Key Config Bar -->
+                            <div class="gemini-key-bar" style="background: rgba(255,255,255,0.04); padding: 8px 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                                <div style="font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-key text-warning"></i>
+                                    <span>Google Gemini API Key:</span>
+                                    <span id="geminiStatusBadge" class="badge badge-secondary" style="font-size: 0.72rem;">Chế độ RAG Local</span>
+                                </div>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="password" id="geminiApiKeyInput" placeholder="Dán Gemini API Key (AIzaSy...)" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: var(--text-primary); width: 220px;">
+                                    <button type="button" id="saveGeminiKeyBtn" class="btn btn-sm btn-outline" title="Lưu API Key vào trình duyệt"><i class="fa-solid fa-floppy-disk"></i> Lưu Key</button>
+                                    <button type="button" id="clearGeminiKeyBtn" class="btn btn-sm btn-outline text-danger" title="Xóa Key" style="display:none;"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+
                             <div class="chat-messages" id="aiChatMessages">
                                 <div class="chat-message ai">
                                     <div class="avatar"><i class="fa-solid fa-robot"></i></div>

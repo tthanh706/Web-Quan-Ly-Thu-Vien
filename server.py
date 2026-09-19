@@ -721,6 +721,8 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
             # 9. AI Search Assistant (RAG & General Conversational AI)
             elif path == '/api/ai/search':
                 prompt = body.get('prompt', '').strip()
+                api_key = (body.get('api_key') or os.environ.get('GEMINI_API_KEY', '')).strip()
+
                 if not prompt:
                     return self.send_error_json("Vui lòng nhập nội dung tìm kiếm hoặc câu hỏi cho Trợ lý AI")
 
@@ -757,7 +759,43 @@ class LibraryAPIHandler(http.server.SimpleHTTPRequestHandler):
                 matches.sort(key=lambda x: x[0], reverse=True)
                 top_results = [b for s, b in matches[:4]]
 
-                # AI Conversational & RAG Knowledge Engine
+                # Check if Gemini API Key is available
+                if api_key:
+                    try:
+                        book_lines = [f"- [{b['book_code']}] '{b['title']}' - Tác giả: {b['author']} ({b['category_name']}) | Tồn: {b['available_qty']}/{b['total_qty']} | Kệ: {b['rack_location']}" for b in all_books]
+                        book_context = "\n".join(book_lines)
+                        
+                        sys_prompt = (
+                            "Bạn là Trợ lý AI Thư viện SmartLibrary AI của Trường Đại học Công nghệ Thông tin và Truyền thông - ĐH Thái Nguyên (ICTU).\n"
+                            "Nhiệm vụ:\n"
+                            "1. Trả lời đầy đủ, chính xác, tự nhiên bằng tiếng Việt cho TẤT CẢ các câu hỏi của người dùng (kiến thức tổng hợp, toán, khoa học, lập trình, lịch sử, văn học, kỹ năng...).\n"
+                            "2. Sử dụng dữ liệu RAG kho sách thư viện ICTU dưới đây nếu người dùng hỏi về sách, tác giả hoặc mượn trả:\n"
+                            f"DANH SÁCH SÁCH TRONG THƯ VIỆN ICTU:\n{book_context}\n\n"
+                            "QUY ĐỊNH THƯ VIỆN: Thời hạn mượn 14 ngày, gia hạn tối đa 2 lần (+7 ngày/lần), phạt 5.000 VNĐ/ngày trễ, thẻ độc giả 2 năm."
+                        )
+                        
+                        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                        payload_data = {
+                            "contents": [{ "parts": [{ "text": f"{sys_prompt}\n\nCÂU HỎI NGƯỜI DÙNG: {prompt}" }] }]
+                        }
+                        req = urllib.request.Request(
+                            gemini_url,
+                            data=json.dumps(payload_data).encode('utf-8'),
+                            headers={'Content-Type': 'application/json'}
+                        )
+                        with urllib.request.urlopen(req, timeout=12) as response:
+                            res_json = json.loads(response.read().decode('utf-8'))
+                            gemini_reply = res_json['candidates'][0]['content']['parts'][0]['text']
+                            display_books = top_results if top_results else all_books[:3]
+                            return self.send_json({
+                                "prompt": prompt,
+                                "ai_response": f"🤖 **Trợ lý Gemini AI (RAG Live):**\n\n{gemini_reply}",
+                                "books": display_books
+                            })
+                    except Exception as g_err:
+                        print(f"Gemini API Error: {str(g_err)}. Falling back to Local RAG Engine.")
+
+                # Local RAG Conversational Fallback Engine
                 ai_reply = ""
                 
                 # 1. ICTU & University Knowledge Context

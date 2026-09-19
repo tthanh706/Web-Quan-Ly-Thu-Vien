@@ -962,11 +962,56 @@ function setupEventListeners() {
     });
     document.getElementById('refreshAiRecBtn').addEventListener('click', loadAiRecommendations);
 
+    // Gemini API Key Management
+    const saveKeyBtn = document.getElementById('saveGeminiKeyBtn');
+    const clearKeyBtn = document.getElementById('clearGeminiKeyBtn');
+    if (saveKeyBtn) {
+        saveKeyBtn.addEventListener('click', () => {
+            const keyVal = document.getElementById('geminiApiKeyInput').value.trim();
+            if (!keyVal) {
+                showToast('Vui lòng nhập Gemini API Key (AIzaSy...)', 'warning');
+                return;
+            }
+            localStorage.setItem('gemini_api_key', keyVal);
+            showToast('Đã kết nối và lưu Gemini API Key thành công!', 'success');
+            initGeminiKeyUI();
+        });
+    }
+    if (clearKeyBtn) {
+        clearKeyBtn.addEventListener('click', () => {
+            localStorage.removeItem('gemini_api_key');
+            showToast('Đã xóa Gemini API Key. Chuyển về RAG Local.', 'info');
+            initGeminiKeyUI();
+        });
+    }
+    initGeminiKeyUI();
+
     // Export Buttons
     document.getElementById('exportBooksBtn').addEventListener('click', exportBooksCSV);
     document.getElementById('exportReadersBtn').addEventListener('click', exportReadersCSV);
     document.getElementById('exportLoansBtn').addEventListener('click', exportLoansCSV);
     document.getElementById('printFullReportBtn').addEventListener('click', openFullReportPrint);
+}
+
+function initGeminiKeyUI() {
+    const key = (localStorage.getItem('gemini_api_key') || '').trim();
+    const badge = document.getElementById('geminiStatusBadge');
+    const input = document.getElementById('geminiApiKeyInput');
+    const clearBtn = document.getElementById('clearGeminiKeyBtn');
+
+    if (!badge || !input) return;
+
+    if (key) {
+        badge.className = 'badge badge-success';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã kết nối Gemini AI';
+        input.value = key;
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+    } else {
+        badge.className = 'badge badge-secondary';
+        badge.textContent = 'Chế độ RAG Local';
+        input.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+    }
 }
 
 // --- USER PROFILE MODAL HANDLERS ---
@@ -2131,7 +2176,8 @@ async function handleAiSearch() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
     try {
-        const res = await fetchAPI('/ai/search', 'POST', { prompt });
+        const apiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+        const res = await fetchAPI('/ai/search', 'POST', { prompt, api_key: apiKey });
         document.getElementById(loadingId).remove();
 
         let booksHTML = '';
@@ -2151,11 +2197,13 @@ async function handleAiSearch() {
             `;
         }
 
+        const formattedReply = formatAiResponse(res.ai_response);
+
         chatContainer.innerHTML += `
             <div class="chat-message ai">
                 <div class="avatar"><i class="fa-solid fa-robot"></i></div>
                 <div class="bubble">
-                    ${res.ai_response}
+                    ${formattedReply}
                     ${booksHTML}
                 </div>
             </div>
@@ -2164,6 +2212,15 @@ async function handleAiSearch() {
     } catch (err) {
         document.getElementById(loadingId).remove();
     }
+}
+
+function formatAiResponse(text) {
+    if (!text) return '';
+    let formatted = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+    return formatted;
 }
 
 async function loadAiRecommendations() {
